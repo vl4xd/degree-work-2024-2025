@@ -1,5 +1,4 @@
-import time
-import abc
+import re
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
@@ -27,7 +26,7 @@ class BasePage(object):
         self.driver.get(self.page_href)
     
 
-class MainPage(BasePage):
+class SeasonPage(BasePage):
     
     
     def __init__(self, driver, page_href = 'https://www.championat.com/football/_russiapl.html'):
@@ -65,10 +64,11 @@ class MainPage(BasePage):
             tp = TeamPage(self.driver, team_link)
             team = tp.get_team_info()
             team_list.append(team)
+            
+        # получение id сезона
+        season_id = self.page_href.split('/')[-2] # получаем уникальный id сезона
         
-        #result = Season(url=self.page_href, start_date=start_date, end_date=end_date)
-        
-        return Season(url=self.page_href,
+        return Season(id=season_id,
                       start_date=start_date,
                       end_date=end_date,
                       teams=team_list)
@@ -142,21 +142,6 @@ class MainPage(BasePage):
         
         # устанавливаем актуальную ссылку
         self.page_href = self.driver.current_url
-        
-        
-    # def get_season_team_info(self) -> list[tuple[str, str]]:
-    #     table_body = self.driver.find_element(*MainPageLocators.TOURNIR_TABLE_TBODY)
-    #     team_links = table_body.find_elements(*MainPageLocators.TOURNIR_TABLE_TEAM_LINK)
-        
-    #     team_links_list = [link.get_attribute('href') for link in team_links]
-        
-    #     result_list = []
-    #     for team_link in team_links_list:
-    #         tp = TeamPage(self.driver, team_link)
-    #         team_tag_name = tp.get_team_tag_name()
-    #         result_list.append(team_tag_name)
-        
-    #     return result_list
 
 
 class TeamPage(BasePage):
@@ -166,7 +151,19 @@ class TeamPage(BasePage):
         super().__init__(driver, page_href)
     
     
-    def get_team_info(self) -> str:
+    def get_team_name_id(self) -> tuple[str, str]:
+        original_window = self.driver.current_window_handle # запоминаем текущую страницу
+        self.driver.switch_to.new_window('tab') # соаздем новую страницу
+        self.go_to_page() # переходим на страницу команды в текущем сезоне
+        self.driver.find_element(*TeamPageLocators.TEAM_ABOUT_BUTTON).click() # переходим на главную страницу команды
+        team_name: str = self.driver.find_element(*TeamPageLocators.TEAM_NAME).text # получаем название команды
+        team_id: str = self.driver.current_url.split('/')[-2] # получаем уникальный тег команды
+        self.driver.close() # закрываем страницу команды
+        self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
+        return team_name, team_id
+        
+    
+    def get_team_info(self) -> Team:
         '''
         '''
         # https://www.selenium.dev/documentation/webdriver/interactions/windows/
@@ -175,6 +172,8 @@ class TeamPage(BasePage):
         self.driver.switch_to.new_window('tab') # соаздем новую страницу
         self.page_href = self.page_href.replace('result', 'players') # изменяем ссылку для перехода на отображение состава
         self.go_to_page() # переходим на страницу команды в текущем сезоне
+        
+        season_team_id = self.driver.current_url.split('/')[-1]
         
         try:
             # https://www.championat.com/football/_russiapl/tournament/5980/teams/255784/result/
@@ -185,7 +184,6 @@ class TeamPage(BasePage):
         except NoSuchElementException:
             coach = None
         
-        
         player_links = self.driver.find_elements(*TeamPageLocators.TEAM_PLAYER_LINKS)
         player_links_list = [link.get_attribute('href') for link in player_links]
         player_list = []
@@ -194,14 +192,13 @@ class TeamPage(BasePage):
             player = pp.get_player_info()
             player_list.append(player)
         
-        self.driver.find_element(*TeamPageLocators.TEAM_ABOUT_BUTTON).click() # переходим на главную страницу команды
-        team_name: str = self.driver.find_element(*TeamPageLocators.TEAM_NAME).text # получаем название команды
-        team_id: str = self.driver.current_url.split('/')[-2] # получаем уникальный тег команды
+        team_name, team_id = self.get_team_name_id()
+        
         self.driver.close() # закрываем страницу команды
         self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
         
         return Team(id=team_id,
-                    url=self.page_href,
+                    season_team_id=season_team_id,
                     name=team_name,
                     players=player_list,
                     coach=coach)
@@ -219,9 +216,8 @@ class CoachPage(BasePage):
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab') # соаздем новую страницу
         self.go_to_page() # переходим на страницу команды в текущем сезоне
-        #self.driver.find_element(*CoachPageLocators.COACH_ABOUT_BUTTON).click() # переходим на главную страницу тренера
         
-        #coach_id: str = self.driver.current_url.split('/')[-2] # получаем уникальный тег тренера
+        coach_id = self.driver.current_url.split('/')[-2] # получаем уникальный id тренера
         
         first_name = None
         middle_name = None
@@ -254,7 +250,7 @@ class CoachPage(BasePage):
         self.driver.close() # закрываем страницу команды
         self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
         
-        return Coach(url=self.page_href,
+        return Coach(id=coach_id,
                      first_name=first_name,
                      middle_name=middle_name,
                      last_name=last_name,
@@ -273,6 +269,8 @@ class PlayerPage(BasePage):
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab') # соаздем новую страницу
         self.go_to_page() # переходим на страницу команды в текущем сезоне
+        
+        player_id = self.driver.current_url.split('/')[-2] # получаем уникальный id игрока
         
         first_name = None
         last_name = None
@@ -322,7 +320,7 @@ class PlayerPage(BasePage):
         self.driver.close() # закрываем страницу команды
         self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
         
-        return Player(url=self.page_href, 
+        return Player(id=player_id, 
                       first_name=first_name,
                       last_name=last_name,
                       number=number,
@@ -331,3 +329,103 @@ class PlayerPage(BasePage):
                       growth=growth,
                       weight=weight,
                       transfer_value=transfer_value)
+        
+    
+class CalendarPage(BasePage):
+    
+    
+    def __init__(self, driver, page_href):
+        super().__init__(driver, page_href)
+        
+        
+    def get_calendar_info(self) -> Calendar:
+        original_window = self.driver.current_window_handle # запоминаем текущую страницу
+        self.driver.switch_to.new_window('tab')
+        self.go_to_page() # переходим на календарь игр сезона
+        
+        try:
+            tr_list = self.driver.find_elements(*CalendarPageLocators.TBODY_TR_LIST)
+        except NoSuchElementException: raise NoSuchElementException(f'таблица с играми не найдена. ссылка на календарь сезона: {self.page_href}')
+        
+        for tr in tr_list:
+            tour_number = tr.get_attribute('data-tour')
+            is_played = tr.get_attribute('data-played')
+            
+            # left_team_score = None
+            # right_team_score = None
+            
+            # if (is_played == 1):
+            #     game_score = tr.find_element(*CalendarPageLocators.GAME_SCORE).text.strip().split(':')
+            #     left_team_score = int(game_score[0]) # автоматически при преобразовании удалит лишние пробелы
+            #     right_team_score = int(game_score[1])
+            
+            left_team_link = tr.find_element(*CalendarPageLocators.LEFT_TEAM_LINK).get_attribute('href')
+            left_team = TeamPage(self.driver, left_team_link)
+            _, left_team_id = left_team.get_team_name_id()
+            right_team_link = tr.find_element(*CalendarPageLocators.RIGHT_TEAM_LINK).get_attribute('href')
+            right_team = TeamPage(self.driver, right_team_link)
+            _, right_team_id = right_team.get_team_name_id()
+            
+            game_datatime_str = tr.find_element(*CalendarPageLocators.GAME_DATATIME).text
+            game_date_str = re.search(r"\d{2}\.\d{2}\.\d{4}", game_datatime_str)
+            game_time_str = re.search(r"\d{2}:\d{2}", game_datatime_str)
+            game_date = datetime.strptime(game_date_str, "%d.%m.%Y").date()
+            game_time = datetime.strptime(game_time_str, "%H:%M").time()
+            # меняем preview на stats для перехода на протокол игры
+            game_link = tr.find_element(*CalendarPageLocators.GAME_LINK).get_attribute('href').replace('preview', 'stats')
+            game_id = game_link.split('/')[-2]
+            
+            # обработка страницы игры
+            
+            
+            
+        
+        self.driver.close() # закрываем страницу
+        self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу    
+            
+class GamePage(BasePage):
+    
+
+    def __init__(self, driver, page_href):
+        super().__init__(driver, page_href)
+        
+        
+    def get_game_info(self) -> Game:
+        original_window = self.driver.current_window_handle # запоминаем текущую страницу
+        self.driver.switch_to.new_window('tab')
+        self.go_to_page() # переходим на страницу игры
+        
+        # сбор информации о главном судье
+        referee = None
+        try:
+            el_a_referee = self.driver.find_element(*GamePageLocators.REFEREE_A)
+            referee_id = el_a_referee.get_attribute('href').strip().split('/')[-2]
+            first_last_referee_name = el_a_referee.text.strip().split(' ')
+            first_name_referee = first_last_referee_name[0]
+            last_name_referee = first_last_referee_name[1]
+            
+            referee = Referee(id=referee_id, first_name=first_name_referee, last_name=last_name_referee)
+        except NoSuchElementException: pass
+        
+        left_coach_id = None
+        try:
+            left_coach_link = self.driver.find_element(*GamePageLocators.LEFT_COACH_A).get_attribute('href')
+            left_coach_id = CoachID(left_coach_link.strip().split('/')[-2])
+        except: pass
+        
+        right_coach_id = None
+        try:
+            right_coach_link = self.driver.find_element(*GamePageLocators.RIGHT_COACH_A).get_attribute('href')
+            right_coach_id = CoachID(right_coach_link.strip().split('/')[-2])
+        except: pass
+        
+        # сбор информации о голах
+        left_team_goals: list[Goal] = []
+        right_team_goals: list[Goal] = []
+        
+        
+        
+        self.driver.close() # закрываем страницу
+        self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу    
+        
+        
