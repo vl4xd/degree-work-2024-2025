@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 
 class CoachID():
@@ -96,33 +96,93 @@ class Season():
             
         return season_str + teams_str
 
+class RefereeID():
+    
+    def __init__(self, id: str):
+        self.id = id
 
-class Referee():
+class Referee(RefereeID):
     
     def __init__(self, id: str, first_name: str, last_name: str):
-        self.id = id
+        super().__init__(id)
         self.first_name = first_name
         self.last_name = last_name
 
 
-class Goal():
+class Penalty():
     
-    
-    def __init__(self, min: int, player: PlayerID, player_sub: PlayerID, type: str):
+    def __init__(self, min: int, plus_min: int, player_id: PlayerID, type: str):
         self.min = min
-        self.player = player
-        self.player_sub = player_sub
+        self.plus_min = plus_min
+        self.player_id = player_id
         self.type = type
 
+
+class Goal():
+    
+    def __init__(self, min: int, plus_min: int, player_id: PlayerID, player_sub_id: PlayerID, type: str):
+        self.min = min
+        self.plus_min = plus_min
+        self.player_id = player_id
+        self.player_sub_id = player_sub_id
+        self.type = type
+
+class PlayerLineup():
+    
+    def __init__(self, 
+                 player_id: PlayerID, 
+                 min_in: int, 
+                 plus_min_in: int, 
+                 min_out: int, 
+                 plus_min_out: int,
+                 saves: int):
+        self.player_id = player_id
+        self.min_in = min_in
+        self.plus_min_in = plus_min_in
+        self.min_out = min_out
+        self.plus_min_out = plus_min_out
+        self.saves = saves
+
+class GameStatPoint():
+    
+    def __init__(self, stat_name: str, left_team_stat: int, right_team_stat: int):
+        self.stat_name = stat_name
+        self.left_team_stat = left_team_stat
+        self.right_team_stat = right_team_stat
 
 class Game():    
     
     def __init__(self, id: str = None, 
+                 date: datetime = None,
+                 time: datetime = None,
                  left_team_id: str = None, 
                  right_team_id: str = None, 
-                 referee: Referee = None
+                 referee: Referee = None,
+                 left_team_goals: list[Goal] = [],
+                 right_team_goals: list[Goal] = [],
+                 left_team_penalties: list[Penalty] = [],
+                 right_team_penalties: list[Penalty] = [],
+                 left_coach_id: CoachID = None,
+                 right_coach_id: CoachID = None,
+                 left_team_lineup: list[PlayerLineup] = [],
+                 right_team_lineup: list[PlayerLineup] = [],
+                 game_stats: list[GameStatPoint] = [],
                  ):
-        pass
+        self.id = id
+        self.date = date
+        self.time = time
+        self.left_team_id = left_team_id
+        self.right_team_id = right_team_id
+        self.referee = referee
+        self.left_team_goals = left_team_goals
+        self.right_team_goals = right_team_goals
+        self.left_team_penalties = left_team_penalties
+        self.right_team_penalties = right_team_penalties
+        self.left_coach_id = left_coach_id
+        self.right_coach_id = right_coach_id
+        self.left_team_lineup = left_team_lineup
+        self.right_team_lineup = right_team_lineup
+        self.game_stats = game_stats
     
     
     def __str__(self):

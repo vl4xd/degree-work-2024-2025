@@ -376,7 +376,11 @@ class CalendarPage(BasePage):
             game_id = game_link.split('/')[-2]
             
             # обработка страницы игры
-            
+            calendar_game = Game(id=game_id, 
+                        date=game_date,
+                        time=game_time,
+                        left_team_id=left_team_id,
+                        right_team_id=right_team_id)
             
             
         
@@ -422,10 +426,144 @@ class GamePage(BasePage):
         # сбор информации о голах
         left_team_goals: list[Goal] = []
         right_team_goals: list[Goal] = []
+        try:
+            el_list_left_team_goals = self.driver.find_elements(*GamePageLocators.LEFT_TEAM_GOALS)
+            for left_team_goal in el_list_left_team_goals:
+                min_plus_min = left_team_goal.find_element(*GamePageLocators.MIN_PLUS_MIN_GOAL_DIV).get_attribute('data-minute').split('+')
+                min = int(min_plus_min[0])
+                plus_min = int(min_plus_min[1]) if len(min_plus_min) > 1 else None
+                player_id = PlayerID(left_team_goal.find_element(*GamePageLocators.PLAYER_GOAL_A).get_attribute('href').strip().split('/')[-2])
+                player_sub_id = None
+                try:
+                    player_sub_id = PlayerID(left_team_goal.find_element(*GamePageLocators.PLAYER_SUB_GOAL_A).get_attribute('href').strip().split('/')[-2])
+                except NoSuchElementException: pass
+                type = left_team_goal.find_element(*GamePageLocators.TYPE_GOAL_DIV).get_attribute('title')
+                
+                goal = Goal(min, plus_min, player_id, player_sub_id, type)
+                left_team_goals.append(goal)
+                
+            el_list_right_team_goals = self.driver.find_elements(*GamePageLocators.RIGHT_TEAM_GOALS)
+            for right_team_goal in el_list_right_team_goals:
+                
+                min_plus_min = right_team_goal.find_element(*GamePageLocators.MIN_PLUS_MIN_GOAL_DIV).get_attribute('data-minute').split('+')
+                min = int(min_plus_min[0])
+                plus_min = int(min_plus_min[1]) if len(min_plus_min) > 1 else None
+                
+                player_id = PlayerID(right_team_goal.find_element(*GamePageLocators.PLAYER_GOAL_A).get_attribute('href').strip().split('/')[-2])
+                player_sub_id = None
+                try:
+                    player_sub_id = PlayerID(right_team_goal.find_element(*GamePageLocators.PLAYER_SUB_GOAL_A).get_attribute('href').strip().split('/')[-2])
+                except NoSuchElementException: pass
+                type = right_team_goal.find_element(*GamePageLocators.TYPE_GOAL_DIV).get_attribute('title')
+                
+                goal = Goal(min, plus_min, player_id, player_sub_id, type)
+                right_team_goals.append(goal)
+            
+        except NoSuchElementException: pass
         
+        # сбор информации о наказаниях
+        left_team_penalties: list[Penalty] = []
+        right_team_penalties: list[Penalty] = []
+        try:
+            el_list_left_team_penalties = self.driver.find_elements(*GamePageLocators.LEFT_TEAM_PENALTIES)
+            for left_team_penalty in el_list_left_team_penalties:
+                min_plus_min = left_team_penalty.find_element(*GamePageLocators.MIN_PLUS_MIN_PYNALTY_DIV).text.strip().replace(' ', '').replace('\'', '').split('+')
+                min = int(min_plus_min[0])
+                plus_min = int(min_plus_min[1]) if len(min_plus_min) > 1 else None
+                
+                player_id = PlayerID(left_team_penalty.find_element(*GamePageLocators.PLAYER_PENALTY_A).get_attribute('href').strip().split('/')[-2])
+                type = left_team_penalty.find_element(*GamePageLocators.TYPE_PENALTY_SPAN).get_attribute('class').split(' ')[1].replace('_', '')
+                
+                penalty = Penalty(min, plus_min, player_id, type)
+                left_team_penalties.append(penalty)
+                
+            el_list_right_team_penalties = self.driver.find_elements(*GamePageLocators.RIGHT_TEAM_PENALTIES)
+            for right_team_penalty in el_list_right_team_penalties:
+                min_plus_min = right_team_penalty.find_element(*GamePageLocators.MIN_PLUS_MIN_PYNALTY_DIV).text.strip().replace(' ', '').replace('\'', '').split('+')
+                min = int(min_plus_min[0])
+                plus_min = int(min_plus_min[1]) if len(min_plus_min) > 1 else None
+                
+                player_id = PlayerID(right_team_penalty.find_element(*GamePageLocators.PLAYER_PENALTY_A).get_attribute('href').strip().split('/')[-2])
+                type = right_team_penalty.find_element(*GamePageLocators.TYPE_PENALTY_SPAN).get_attribute('class').split(' ')[1].replace('_', '')
+                
+                penalty = Penalty(min, plus_min, player_id, type)
+                right_team_penalties.append(penalty)
+        except NoSuchElementException: pass
         
+        # сбор информации о составе
+        left_team_lineup: list[PlayerLineup] = []
+        right_team_lineup: list[PlayerLineup] = []
+        try:
+            el_left_team_lineup = self.driver.find_elements(*GamePageLocators.LEFT_TEAM_LINEUP_TR)
+            for left_team_line in el_left_team_lineup:
+                player_id = PlayerID(left_team_line.find_element(*GamePageLocators.PLAYER_LINEUP_HREF_A).get_attribute('href').strip().split('/')[-2])
+                saves_str = left_team_line.find_element(*GamePageLocators.PLAYER_SAVES_TD).text.strip()
+                saves = int(saves_str) if len(saves_str) > 0 else None
+                min_in, plus_min_in, min_out, plus_min_out = None, None, None, None
+                try:
+                    min_plus_min_in = left_team_line.find_element(*GamePageLocators.PLAYER_IN_SPAN).text.strip().replace(' ', '').replace('\'', '').split('+')
+                    min_in = int(min_plus_min_in[0])
+                    plus_min_in = int(min_plus_min_in[1]) if len(min_plus_min_in) > 1 else None
+                except NoSuchElementException: pass
+                try:
+                    min_plus_min_out = left_team_line.find_element(*GamePageLocators.PLAYER_OUT_SPAN).text.strip().replace(' ', '').replace('\'', '').split('+')
+                    min_out = int(min_plus_min_out[0])
+                    plus_min_out = int(min_plus_min_out[1]) if len(min_plus_min_out) > 1 else None
+                except NoSuchElementException: pass
+                
+                player_lineup = PlayerLineup(player_id, min_in, plus_min_in, min_out, plus_min_out, saves)
+                left_team_lineup.append(player_lineup)
+                
+            el_right_team_lineup = self.driver.find_elements(*GamePageLocators.RIGHT_TEAM_LINEUP_TR)
+            for right_team_line in el_right_team_lineup:
+                player_id = PlayerID(right_team_line.find_element(*GamePageLocators.PLAYER_LINEUP_HREF_A).get_attribute('href').strip().split('/')[-2])
+                saves_str = right_team_line.find_element(*GamePageLocators.PLAYER_SAVES_TD).text.strip()
+                saves = int(saves_str) if len(saves_str) > 0 else None
+                min_in, plus_min_in, min_out, plus_min_out = None
+                try:
+                    min_plus_min_in = right_team_line.find_element(*GamePageLocators.PLAYER_IN_SPAN).text.strip().replace(' ', '').replace('\'', '').split('+')
+                    min_in = int(min_plus_min_in[0])
+                    plus_min_in = int(min_plus_min_in[1]) if len(min_plus_min_in) > 1 else None
+                except NoSuchElementException: pass
+                try:
+                    min_plus_min_out = right_team_line.find_element(*GamePageLocators.PLAYER_OUT_SPAN).text.strip().replace(' ', '').replace('\'', '').split('+')
+                    min_out = int(min_plus_min_out[0])
+                    plus_min_out = int(min_plus_min_out[1]) if len(min_plus_min_out) > 1 else None
+                except NoSuchElementException: pass
+                
+                player_lineup = PlayerLineup(player_id, min_in, plus_min_in, min_out, plus_min_out, saves)
+                right_team_lineup.append(player_lineup)
+        except NoSuchElementException: pass
+        
+        # сбор информации о статистике матча
+        try:
+            self.driver.find_element(*GamePageLocators.AUTOUPDATE_SELECT_OFF_OPTION).click() # отключаем обновление статистики
+        except NoSuchElementException: pass
+        
+        game_stats: list[GameStatPoint] = []
+        try:
+            el_game_stats = self.driver.find_elements(*GamePageLocators.STAT_DIV)
+            for game_stat in el_game_stats:
+                left_team_stat = int(game_stat.find_element(*GamePageLocators.LEFT_TEAM_STAT).text)
+                right_team_stat = int(game_stat.find_element(*GamePageLocators.RIGHT_TEAM_STAT).text)
+                stat_name = game_stat.find_element(*GamePageLocators.STAT_TITLE).text.strip()
+                
+                game_stat_point = GameStatPoint(stat_name, left_team_stat, right_team_stat)
+                game_stats.append(game_stat_point)
+        except NoSuchElementException: pass
         
         self.driver.close() # закрываем страницу
         self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу    
         
+        game = Game(referee=referee,
+                    left_coach_id=left_coach_id,
+                    right_coach_id=right_coach_id,
+                    left_team_goals=left_team_goals,
+                    right_team_goals=right_team_goals,
+                    left_team_penalties=left_team_penalties,
+                    right_team_penalties=right_team_penalties,
+                    left_team_lineup=left_team_lineup,
+                    right_team_lineup=right_team_lineup,
+                    game_stats=game_stats)
+        return game
         
