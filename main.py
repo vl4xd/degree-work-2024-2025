@@ -18,7 +18,7 @@ with BrowserConnection() as br:
     # cp = CalendarPage(br, 'https://www.championat.com/football/_russiapl/tournament/5980/calendar/')
     # cp.get_calendar_info()
     
-    gp = GamePage(br, 'https://www.championat.com/football/_russiapl/tournament/3953/match/864089/#stats')
+    gp = GamePage(br, 'https://www.championat.com/football/_england/tournament/6118/match/1190746/#stats')
     game = gp.get_game_info()
-    print(game.right_team_penalties[0].min, game.right_team_penalties[0].plus_min, game.right_team_penalties[0].type)
-    print(game.left_team_goals[1].player_id.id, game.left_team_goals[1].type)
+    print(game.right_team_goals[0].player_id.id, game.right_team_goals[0].player_sub_id.id, game.right_team_goals[0].min)
+    print(game.game_stats[0].stat_name, game.game_stats[0].left_team_stat)

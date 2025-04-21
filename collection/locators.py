@@ -91,7 +91,7 @@ class GamePageLocators(object):
     PLAYER_OUT_SPAN = (By.XPATH, ".//td[4]/span[@class='_out']")
     
     AUTOUPDATE_SELECT_OFF_OPTION = (By.XPATH, "//div[@class='autoupdate__select select']/select[@name='update-time']/option[@value='0']")
-    STAT_DIV = (By.XPATH, "//div[@class='stat-graph']/div[@class='stat-graph__row']")
-    LEFT_TEAM_STAT = (By.XPATH, ".//div[@class='stat-graph__value _left']/strong")
-    RIGHT_TEAM_STAT = (By.XPATH, ".//div[@class='stat-graph__value _right']/strong")
+    STAT_DIV = (By.XPATH, "//div[h2[contains(text(), 'Статистика')]]/div[@class='stat-graph__row']")
+    LEFT_TEAM_STAT = (By.XPATH, ".//div[contains(@class, 'stat-graph__value') and contains(@class, '_left')]/strong")
+    RIGHT_TEAM_STAT = (By.XPATH, ".//div[contains(@class, 'stat-graph__value') and contains(@class, '_right')]/strong")
     STAT_TITLE = (By.XPATH, ".//div[@class='stat-graph__title']")
