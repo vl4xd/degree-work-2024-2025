@@ -15,6 +15,16 @@ class BrowserConnection:
         options.set_preference('general.useragent.override', 'useragent1')
         
         self.browser = webdriver.Firefox(options=options)
+        
+        # Устанавливаем тайм-аут для поиска элементов
+        # self.browser.implicitly_wait(10)  # 10 секунд
+        
+        # Устанавливаем тайм-аут для загрузки страницы
+        self.browser.set_page_load_timeout(30)  # 15 секунд
+        
+        # Устанавливаем тайм-аут для выполнения скриптов
+        #self.browser.set_script_timeout(30)  # 30 секунд
+        
         return self.browser
     
     def __exit__(self, exc_type, exc_val, exc_tb):

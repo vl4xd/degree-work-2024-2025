@@ -95,3 +95,5 @@ class GamePageLocators(object):
     LEFT_TEAM_STAT = (By.XPATH, ".//div[contains(@class, 'stat-graph__value') and contains(@class, '_left')]/strong")
     RIGHT_TEAM_STAT = (By.XPATH, ".//div[contains(@class, 'stat-graph__value') and contains(@class, '_right')]/strong")
     STAT_TITLE = (By.XPATH, ".//div[@class='stat-graph__title']")
+    
+    GAME_STATUS = (By.XPATH, "//div[@class='match-info__score']/div[@class='match-info__status']")
