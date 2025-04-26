@@ -2,7 +2,7 @@ import re
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from urllib3.exceptions import (
     ReadTimeoutError,
