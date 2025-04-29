@@ -3,7 +3,7 @@ from sqlalchemy import ForeignKey, Index, UniqueConstraint, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeMeta
 from datetime import date, time, datetime
 
-from database import Base, int_3, str_100, str_200
+from .database import Base, int_3, str_100, str_200
 
 intpk_a = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
 intpk_m = Annotated[int, mapped_column(primary_key=True, autoincrement=False)]
@@ -137,7 +137,7 @@ class TeamCoachOrm(Base):
 class GameStatusOrm(Base):
     __tablename__ = 'game_status'
     
-    game_status_id: Mapped[intpk_a]
+    game_status_id: Mapped[intpk_m]
     name: Mapped[str_100]
 
 
@@ -157,6 +157,12 @@ class GameOrm(Base):
     )
     game_status_id: Mapped[int] = mapped_column(
         ForeignKey('game_status.game_status_id', ondelete='CASCADE')
+    )
+    left_coach_id: Mapped[str | None] = mapped_column(
+        ForeignKey('coach.coach_id', ondelete='CASCADE')
+    )
+    right_coach_id: Mapped[str | None] = mapped_column(
+        ForeignKey('coach.coach_id', ondelete='CASCADE')
     )
     tour_number: Mapped[int_3 | None]
     start_date: Mapped[date | None]
@@ -310,15 +316,12 @@ class GameStatOrm(Base):
     game_stat_id: Mapped[intpk_a]
     game_id: Mapped[int] = mapped_column(
         ForeignKey('game.game_id', ondelete='CASCADE'),
-        primary_key=True
     )
     team_id: Mapped[str] = mapped_column(
         ForeignKey('team.team_id', ondelete='CASCADE'),
-        primary_key=True
     )
     stat_id: Mapped[int] = mapped_column(
         ForeignKey('stat.stat_id', ondelete='CASCADE'),
-        primary_key=True
     )
     count: Mapped[int_3]
     min: Mapped[int_3 | None]

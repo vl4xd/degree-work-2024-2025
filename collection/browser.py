@@ -20,7 +20,7 @@ class BrowserConnection:
         # self.browser.implicitly_wait(10)  # 10 секунд
         
         # Устанавливаем тайм-аут для загрузки страницы
-        self.browser.set_page_load_timeout(30)  # 15 секунд
+        self.browser.set_page_load_timeout(30)  # 30 секунд
         
         # Устанавливаем тайм-аут для выполнения скриптов
         #self.browser.set_script_timeout(30)  # 30 секунд

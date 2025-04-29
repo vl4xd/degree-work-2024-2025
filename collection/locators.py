@@ -83,8 +83,8 @@ class GamePageLocators(object):
     MIN_PLUS_MIN_PYNALTY_DIV = (By.XPATH, ".//div[@class='match-stat__main-value']")
     TYPE_PENALTY_SPAN = (By.XPATH, ".//div[@class='match-stat__add-info']/span")
     
-    LEFT_TEAM_LINEUP_TR = (By.XPATH, "//table[@class='match-lineup__players table table-stripe table-row-hover'][1]/tbody/tr")
-    RIGHT_TEAM_LINEUP_TR = (By.XPATH, "//table[@class='match-lineup__players table table-stripe table-row-hover'][2]/tbody/tr")
+    LEFT_TEAM_LINEUP_TR = (By.XPATH, "(//table[contains(@class, 'match-lineup__players')])[1]/tbody/tr")
+    RIGHT_TEAM_LINEUP_TR = (By.XPATH, "(//table[contains(@class, 'match-lineup__players')])[2]/tbody/tr")
     PLAYER_LINEUP_HREF_A = (By.XPATH, ".//a[@class='table-item']")
     PLAYER_SAVES_TD = (By.XPATH, ".//td[3]")
     PLAYER_IN_SPAN = (By.XPATH, ".//td[4]/span[@class='_in']")

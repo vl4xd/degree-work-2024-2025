@@ -206,7 +206,8 @@ class TeamPage(BasePage):
             self.page_href = self.page_href.replace('result', 'players') # изменяем ссылку для перехода на отображение состава
             self.go_to_page() # переходим на страницу команды в текущем сезоне
         
-            season_team_id = self.driver.current_url.split('/')[-1]
+            season_team_id = self.driver.current_url.split('/')[-3]
+            print(season_team_id)
             
             try:
                 # https://www.championat.com/football/_russiapl/tournament/5980/teams/255784/result/
@@ -233,8 +234,10 @@ class TeamPage(BasePage):
                         players=player_list,
                         coach=coach)
         finally:
-            self.driver.close() # закрываем страницу команды
-            self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
+            # Закрываем только если новая вкладка существует
+            if len(self.driver.window_handles) > 1:
+                self.driver.close() # закрываем страницу команды
+                self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
     
     
 class CoachPage(BasePage):
@@ -558,6 +561,7 @@ class GamePage(BasePage):
                         plus_min_out = int(min_plus_min_out[1]) if len(min_plus_min_out) > 1 else None
                     except NoSuchElementException: pass
                     
+                    
                     player_lineup = PlayerLineup(player_id, min_in, plus_min_in, min_out, plus_min_out, saves)
                     left_team_lineup.append(player_lineup)
                     
@@ -566,7 +570,7 @@ class GamePage(BasePage):
                     player_id = PlayerID(right_team_line.find_element(*GamePageLocators.PLAYER_LINEUP_HREF_A).get_attribute('href').strip().split('/')[-2])
                     saves_str = right_team_line.find_element(*GamePageLocators.PLAYER_SAVES_TD).text.strip()
                     saves = int(saves_str) if len(saves_str) > 0 else None
-                    min_in, plus_min_in, min_out, plus_min_out = None
+                    min_in, plus_min_in, min_out, plus_min_out = None, None, None, None
                     try:
                         min_plus_min_in = right_team_line.find_element(*GamePageLocators.PLAYER_IN_SPAN).text.strip().replace(' ', '').replace('\'', '').split('+')
                         min_in = int(min_plus_min_in[0])
@@ -577,6 +581,7 @@ class GamePage(BasePage):
                         min_out = int(min_plus_min_out[0])
                         plus_min_out = int(min_plus_min_out[1]) if len(min_plus_min_out) > 1 else None
                     except NoSuchElementException: pass
+                    
                     
                     player_lineup = PlayerLineup(player_id, min_in, plus_min_in, min_out, plus_min_out, saves)
                     right_team_lineup.append(player_lineup)
