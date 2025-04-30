@@ -62,6 +62,7 @@ class SeasonPage(BasePage):
     def __init__(self, driver, page_href = 'https://www.championat.com/football/_russiapl.html'):
         super().__init__(driver, page_href)
         self.go_to_page()
+        print('Teeeeeesttttttttttttting')
         # при переходе по стандартной ссылке необходимо ее обновить нажав на название турнира
         # https://www.championat.com/football/_russiapl.html (ссылка на текущий турнир РПЛ)
         # -> 

@@ -252,19 +252,6 @@ def get_filled_schemas_files(path):
         if os.path.isfile(os.path.join(path, file)):
             yield file
 
-
-# async def insert_filled_schemas_to_db(): 
-#     filled_schemas_path = './collection/filled_schemas'
-#     for file in get_filled_schemas_files(filled_schemas_path):
-#         print(file)
-#         # Чтение данных
-#         with open(os.path.join(filled_schemas_path, file), "rb") as f:
-#             loaded_season: Season = pickle.load(f)
-#         await start_fill_database(loaded_season)
-#         # input('Для продолжения нажмите любую кнопку...')
-        
-# asyncio.run(insert_filled_schemas_to_db())
-
 async def process_file(file, path):
     with open(os.path.join(path, file), "rb") as f:
         loaded_season: Season = pickle.load(f)
@@ -280,7 +267,6 @@ async def main():
         input('Для продолжения нажмите любую кнопку...')
 
 if __name__ == "__main__":
-    # Для Windows нужно использовать SelectorEventLoop
     if os.name == 'nt':
         from asyncio import WindowsSelectorEventLoopPolicy
         asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
