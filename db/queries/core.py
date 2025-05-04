@@ -5,7 +5,80 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
 from asyncpg.exceptions import UniqueViolationError
 
-from ..database import async_session_factory
+import pandas as pd
+from ..database import async_session_factory, sync_session_factory
+
+
+class SyncCore:
+    
+    @staticmethod
+    def get_team_id_list() -> list[str]:
+        with sync_session_factory() as session:
+            query = text('''
+                         SELECT team_id
+                         FROM team
+                         ''')
+            return session.scalars(query).all()
+    
+    
+    @staticmethod
+    def get_table_names() -> list[str]:
+        with sync_session_factory() as session:
+            query = text('''
+                         SELECT tablename 
+                         FROM pg_catalog.pg_tables
+                         WHERE schemaname='public' AND tablename!='alembic_version'
+                         ''')
+            return session.scalars(query).all()
+      
+      
+    @staticmethod
+    def get_amplua_id_for_name(name: str) -> int:
+        try:
+            with sync_session_factory() as session:
+                query = text('''SELECT amplua_id FROM amplua WHERE name=:name
+                            ''')
+                query = query.bindparams(
+                    name=name
+                )
+                res = session.execute(query)
+                amplua = res.one_or_none()
+                existed_amplua_id = None if amplua is None else amplua.amplua_id
+                return existed_amplua_id
+        except Exception as e:
+            session.rollback()
+            raise
+            
+    
+    @staticmethod
+    def get_lineup_player_stat_for_game(game_id: int) -> pd.DataFrame:
+        '''Сводная таблица о статистике игровок, учавствующих в игре'''
+        
+        with sync_session_factory() as session:
+            query = text('''SELECT
+                            lineup.player_id,
+                            player_stat.transfer_value,
+                            player_stat.amplua_id,
+                            amplua.name
+                            FROM game
+                            LEFT JOIN lineup ON game.game_id=lineup.game_id
+                            LEFT JOIN player_stat ON lineup.player_id=player_stat.player_id AND game.season_id=player_stat.season_id
+                            LEFT JOIN amplua ON player_stat.amplua_id=amplua.amplua_id
+                            WHERE game.game_id=:game_id
+                         ''')
+            query = query.bindparams(
+                game_id=game_id
+            )
+            df = pd.read_sql(query, session.connection())
+            
+        df['transfer_value'] = df['transfer_value'].fillna(0)
+        unkwn_amplua_name = 'неизвестно'
+        unkwn_amplua_id = SyncCore.get_amplua_id_for_name(unkwn_amplua_name)
+        df['amplua_id'] = df['amplua_id'].fillna(unkwn_amplua_id)
+        df['name'] = df['name'].fillna(unkwn_amplua_name)
+        
+        return df
+            
 
 
 class AsyncCore:
@@ -238,6 +311,33 @@ class AsyncCore:
                     raise
                 
     class PlayerStat:
+        
+        @staticmethod
+        async def is_player_stat_exist(player_id: str,
+                                       season_id: str):
+            '''
+            Метод для проверки ранее добавленной записи player_stat для сезона
+            
+            НЕ ИСПОЛЬЗОВАТЬ! Применяется только для стартового заполнения
+            '''
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                                 SELECT * FROM player_stat
+                                 WHERE player_id=:player_id AND season_id=:season_id
+                                 ''')
+                    query = query.bindparams(
+                        player_id=player_id,
+                        season_id=season_id
+                    )
+                    res = await session.execute(query)
+                    is_exist = False if res.one_or_none() is None else True
+                    return is_exist
+                except Exception as e:
+                    await session.rollback()
+                    raise
+            
+            
         
         @staticmethod
         async def insert_player_stat(player_id: str,

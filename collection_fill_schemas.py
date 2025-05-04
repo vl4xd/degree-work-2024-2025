@@ -7,7 +7,6 @@ from collection.browser import BrowserConnection
 from db.queries.core import AsyncCore as AC
 
 
-# datatime_now = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 start_season_indx = 0
 end_season_indx = 9
 

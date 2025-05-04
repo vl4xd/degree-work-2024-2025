@@ -10,8 +10,14 @@ import asyncio
 from db.queries.core import AsyncCore as AC
 from db.models import *
 
+
+# добавить кнопку сообщить о неполных данных в интерфейс клиентского приложения
+UNKNOWN_SEASON_PLAYER_STAT: dict[str, set] = {}
    
 async def start_fill_database(season: Season):
+    # инициализируем ключ словаря UNKNOWN_SEASON_PLAYER_STAT для данного сезона
+    UNKNOWN_SEASON_PLAYER_STAT[season.id] = set()
+    
     await AC.Season.insert_season(season_id=season.id,
                         start_date=season.start_date,
                         end_date=season.end_date)
@@ -49,7 +55,7 @@ async def start_fill_database(season: Season):
         
     for game in season.games:
         
-        # если когда либо присутствовали другие тренера на игре
+        # если когда либо присутствовали необработанные в момент просмотра команды тренера на игре
         # в дальнейшем добавить обработку тренеров при просмотре игры
         left_coach_id = None
         if game.left_coach_id:
@@ -100,12 +106,18 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
+                
             if player_sub_id and not await AC.Player.is_player_id_exist(player_sub_id):
                 await AC.Player.insert_player(player_id=player_sub_id)
                 await AC.TeamPlayer.insert_team_player_for_season_team_id(season_team_id=game.left_season_team_id,
                                                                     season_id=season.id,
                                                                     player_id=player_sub_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_sub_id)
+                
             
             await AC.Goal.insert_goal_for_season_team_id(game_id=game_id,
                                                          season_id=season.id,
@@ -128,12 +140,17 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
+                
             if player_sub_id and not await AC.Player.is_player_id_exist(player_sub_id):
                 await AC.Player.insert_player(player_id=player_sub_id)
                 await AC.TeamPlayer.insert_team_player_for_season_team_id(season_team_id=game.right_season_team_id,
                                                                     season_id=season.id,
                                                                     player_id=player_sub_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_sub_id)
             
             await AC.Goal.insert_goal_for_season_team_id(game_id=game_id,
                                                          season_id=season.id,
@@ -153,6 +170,8 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
             
             await AC.Penalty.insert_penalty_for_season_team_id(game_id=game_id,
                                                                season_id=season.id,
@@ -171,6 +190,8 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
             
             await AC.Penalty.insert_penalty_for_season_team_id(game_id=game_id,
                                                                season_id=season.id,
@@ -189,6 +210,9 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
+                
             if lineup.saves:
                 await AC.Save.insert_save_for_season_team_id(game_id=game_id,
                                                              season_id=season.id,
@@ -214,6 +238,8 @@ async def start_fill_database(season: Season):
                                                                     season_id=season.id,
                                                                     player_id=player_id,
                                                                     is_active=False)
+                
+                UNKNOWN_SEASON_PLAYER_STAT[season.id].add(player_id)
                 
             if lineup.saves:
                 await AC.Save.insert_save_for_season_team_id(game_id=game_id,
@@ -272,3 +298,6 @@ if __name__ == "__main__":
         asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
     
     asyncio.run(main())
+    # asyncio.run(AC.PlayerStat.is_player_stat_exist())
+    # print(UNKNOWN_SEASON_PLAYER_STAT)
+    
