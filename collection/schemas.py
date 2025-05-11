@@ -335,7 +335,7 @@ class Game():
 class Season():
         
         
-    def __init__(self, id: str, start_date: date, end_date: date, teams: list[Team], games: list[Game]):
+    def __init__(self, id: str, start_date: date, end_date: date, teams: list[Team] = [], games: list[Game] = []):
         self.id = id
         self.start_date = start_date
         self.end_date = end_date

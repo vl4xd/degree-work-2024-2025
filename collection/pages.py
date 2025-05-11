@@ -47,11 +47,11 @@ class BasePage(object):
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=2, min=1, max=60),
         retry=retry_if_exception_type(_RETRY_EXCEPTIONS))
-    def get_info(self):
+    def get_info(self, only_info: bool = False):
         # обертка для повторных попыток при возникновлении исключений
-        return self._get_info_impl()
+        return self._get_info_impl(only_info=only_info)
     
-    def _get_info_impl(self):
+    def _get_info_impl(self, only_info):
         '''Метод для реализации в наследниках'''
         raise NotImplementedError('Must be implemented in subclass')
     
@@ -62,7 +62,6 @@ class SeasonPage(BasePage):
     def __init__(self, driver, page_href = 'https://www.championat.com/football/_russiapl.html'):
         super().__init__(driver, page_href)
         self.go_to_page()
-        print('Teeeeeesttttttttttttting')
         # при переходе по стандартной ссылке необходимо ее обновить нажав на название турнира
         # https://www.championat.com/football/_russiapl.html (ссылка на текущий турнир РПЛ)
         # -> 
@@ -71,7 +70,7 @@ class SeasonPage(BasePage):
         self.page_href = self.driver.current_url # обновляем ссылку
     
     
-    def _get_info_impl(self) -> Season:
+    def _get_info_impl(self, only_info: bool) -> Season:
 
         # получение данных сезона
         start_date: date
@@ -81,6 +80,11 @@ class SeasonPage(BasePage):
         start_end_date = el_date_tag.text.split("—")
         start_date = datetime.strptime(start_end_date[0], "%d.%m.%Y").date()
         end_date = datetime.strptime(start_end_date[1], "%d.%m.%Y").date()
+        # получение id сезона
+        season_id = self.page_href.split('/')[-2] # получаем уникальный id сезона
+        
+        if only_info: 
+            return Season(id=season_id, start_date=start_date, end_date=end_date)
         
         # получение данных команд
         table_body = self.driver.find_element(*MainPageLocators.TOURNIR_TABLE_TBODY)
@@ -90,10 +94,7 @@ class SeasonPage(BasePage):
         for team_link in team_links_list:
             tp = TeamPage(self.driver, team_link)
             team = tp.get_info()
-            team_list.append(team)
-            
-        # получение id сезона
-        season_id = self.page_href.split('/')[-2] # получаем уникальный id сезона
+            team_list.append(team)        
         
         # получение данных игр
         calendar_href = self.page_href + 'calendar/'
@@ -104,6 +105,20 @@ class SeasonPage(BasePage):
                       end_date=end_date,
                       teams=team_list,
                       games=game_list)
+        
+        
+    @staticmethod
+    def get_page_link(season_id: str) -> str:
+        """Получение полной ссылки сезона
+
+        Args:
+            season_id (str): Идентификатор сезона
+
+        Returns:
+            str: Полная ссылка сезона
+        """
+        
+        return f'https://www.championat.com/football/_russiapl/tournament/{season_id}/'
     
     
     def get_season_list_options(self) -> list[str]:
@@ -195,7 +210,7 @@ class TeamPage(BasePage):
         return team_name, team_id
         
     
-    def _get_info_impl(self) -> Team:
+    def _get_info_impl(self, only_info: bool) -> Team:
         '''
         '''
         # https://www.selenium.dev/documentation/webdriver/interactions/windows/
@@ -208,7 +223,6 @@ class TeamPage(BasePage):
             self.go_to_page() # переходим на страницу команды в текущем сезоне
         
             season_team_id = self.driver.current_url.split('/')[-3]
-            print(season_team_id)
             
             try:
                 # https://www.championat.com/football/_russiapl/tournament/5980/teams/255784/result/
@@ -248,7 +262,7 @@ class CoachPage(BasePage):
         super().__init__(driver, page_href)
         
     
-    def _get_info_impl(self) -> Coach:
+    def _get_info_impl(self, only_info: bool) -> Coach:
         
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab') # соаздем новую страницу
@@ -303,7 +317,7 @@ class PlayerPage(BasePage):
         super().__init__(driver, page_href)
         
         
-    def _get_info_impl(self) -> Player:
+    def _get_info_impl(self, only_info: bool) -> Player:
         
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab') # соаздем новую страницу
@@ -373,6 +387,11 @@ class PlayerPage(BasePage):
             self.driver.close() # закрываем страницу команды
             self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
             
+            
+    @staticmethod
+    def get_page_link(season_id: str, player_id: str) -> str:
+        return f'https://www.championat.com/football/_russiapl/tournament/{season_id}/players/{player_id}/'
+    
     
 class CalendarPage(BasePage):
     
@@ -381,7 +400,7 @@ class CalendarPage(BasePage):
         super().__init__(driver, page_href)
         
         
-    def _get_info_impl(self) -> list[Game]:
+    def _get_info_impl(self, only_info: bool) -> list[Game]:
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab')
         
@@ -443,7 +462,7 @@ class GamePage(BasePage):
         super().__init__(driver, page_href)
         
         
-    def _get_info_impl(self) -> Game:
+    def _get_info_impl(self, only_info: bool) -> Game:
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
         self.driver.switch_to.new_window('tab')
         
@@ -639,4 +658,4 @@ class GamePage(BasePage):
         finally:
             self.driver.close() # закрываем страницу
             self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу   
-        
+      

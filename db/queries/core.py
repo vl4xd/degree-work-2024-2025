@@ -54,6 +54,7 @@ class SyncCore:
     def get_lineup_player_stat_for_game(game_id: int) -> pd.DataFrame:
         '''Сводная таблица о статистике игровок, учавствующих в игре'''
         
+        # https://stackoverflow.com/questions/2281551/tsql-left-join-and-only-last-row-from-right
         with sync_session_factory() as session:
             query = text('''SELECT
                             lineup.player_id,
@@ -62,7 +63,12 @@ class SyncCore:
                             amplua.name
                             FROM game
                             LEFT JOIN lineup ON game.game_id=lineup.game_id
-                            LEFT JOIN player_stat ON lineup.player_id=player_stat.player_id AND game.season_id=player_stat.season_id
+                            LEFT JOIN player_stat 
+                            ON lineup.player_id=player_stat.player_id AND 
+                            game.season_id=player_stat.season_id AND 
+                            player_stat.player_stat_id=(
+                                SELECT MAX(player_stat_id) FROM player_stat WHERE player_stat.player_id=lineup.player_id AND player_stat.season_id=game.season_id
+                            )
                             LEFT JOIN amplua ON player_stat.amplua_id=amplua.amplua_id
                             WHERE game.game_id=:game_id
                          ''')
@@ -83,6 +89,16 @@ class SyncCore:
 
 class AsyncCore:
     '''Класс для асинхронного обращения к базе данных'''
+    
+    UNDEFINED_GAME_STATUS_ID = 4
+    GAME_STATUS_DICT = {
+        0: 'не начался',
+        1: 'окончен',
+        2: 'перерыв',
+        3: 'игра',
+        UNDEFINED_GAME_STATUS_ID: 'не определен',
+        5: 'окончен, не проанализирован',
+    }
     
     @staticmethod
     async def get_moscow_datetime_now() -> datetime:
@@ -135,6 +151,39 @@ class AsyncCore:
                         first_name=first_name,
                         last_name=last_name,
                         birth_date=birth_date,
+                    )
+                    await session.execute(stmt)
+                    await session.commit()
+                except IntegrityError as e:
+                    await session.rollback() # откатываем транзакцию
+                    raise
+                except Exception as e:
+                    await session.rollback()
+                    raise
+                
+        @staticmethod
+        async def update_player_data(
+            player_id: str,
+            first_name: str | None = None,
+            last_name: str | None = None,
+            birth_date: date | None = None
+        ):
+            # выход если игрока не существует
+            if not await AsyncCore.Player.is_player_id_exist(player_id):
+                return
+            
+            async with async_session_factory() as session:
+                try:
+                    stmt = text('''
+                                UPDATE player
+                                SET first_name=:first_name, last_name=:last_name, birth_date=:birth_date
+                                WHERE player_id=:player_id
+                                ''')
+                    stmt = stmt.bindparams(
+                        first_name=first_name,
+                        last_name=last_name,
+                        birth_date=birth_date,
+                        player_id=player_id
                     )
                     await session.execute(stmt)
                     await session.commit()
@@ -263,6 +312,30 @@ class AsyncCore:
     class Season:
         
         @staticmethod
+        async def get_current_season_id() -> str | None:
+            
+            current_datetime = await AsyncCore.get_moscow_datetime_now()
+            current_date = current_datetime.date()
+            
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                                 SELECT * FROM season
+                                 WHERE start_date <= :current_date AND end_date >= :current_date
+                                 ''')
+                    query = query.bindparams(
+                        current_date=current_date
+                    )
+                    res = await session.execute(query)
+                    season = res.one_or_none()
+                    existed_season_id =  None if season is None else season.season_id
+                    return existed_season_id
+                except Exception as e:
+                    await session.rollback()
+                    raise
+        
+        
+        @staticmethod
         async def is_season_id_exist(season_id: str) -> bool:
             async with async_session_factory() as session:
                 try:
@@ -314,7 +387,7 @@ class AsyncCore:
         
         @staticmethod
         async def is_player_stat_exist(player_id: str,
-                                       season_id: str):
+                                       season_id: str) -> bool:
             '''
             Метод для проверки ранее добавленной записи player_stat для сезона
             
@@ -595,12 +668,18 @@ class AsyncCore:
         async def insert_team_player_for_season_team_id(season_team_id: str,
                                                         season_id: str,
                                                         player_id: str,
-                                                        is_active: bool = True):
+                                                        is_active: bool = True) -> bool:
+            '''
+            Возвращает True если запись была в противном случае False
+            
+            (для проверки наличия player_stat поскольку если игрок не был в записи команды, значит его статистика не была собрана)
+            '''
+            
             
             team_id = await AsyncCore.SeasonTeam.get_team_id(season_id, season_team_id)
             
             if await AsyncCore.TeamPlayer.is_team_id_season_id_player_id_exist(team_id, season_id, player_id):
-                return
+                return True
             
             async with async_session_factory() as session:
                 try:
@@ -628,6 +707,7 @@ class AsyncCore:
                     )
                     await session.execute(stmt)
                     await session.commit()
+                    return False
                 except IntegrityError as e:
                     await session.rollback() # откатываем транзакцию
                     raise
@@ -764,15 +844,6 @@ class AsyncCore:
         
     class GameStatus:
         
-        UNDEFINED_GAME_STATUS_ID = 4
-        GAME_STATUS_DICT = {
-            0: 'не начался',
-            1: 'окончен',
-            2: 'перерыв',
-            3: 'игра',
-            UNDEFINED_GAME_STATUS_ID: 'не определен',
-        }
-        
         @staticmethod
         async def is_game_status_id_exist(game_status_id: int) -> bool:
             async with async_session_factory() as session:
@@ -826,6 +897,36 @@ class AsyncCore:
                     raise
                 
     class Game:
+        
+        async def get_active_season_game_id(season_id: str) -> list[str]:
+            
+            current_datetime = await AsyncCore.get_moscow_datetime_now()
+            current_date = current_datetime.date()
+            current_time = current_datetime.time()
+            
+            game_status_id_not_played = 0
+            if AsyncCore.GAME_STATUS_DICT[game_status_id_not_played] != 'не начался':
+                raise Exception('Идентификатор не начавшегося матча был изменен')
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                                 SELECT season_game_id FROM game
+                                 WHERE 
+                                 game_status_id = :game_status_id_not_played AND 
+                                 start_date < :current_date OR (start_date = :current_date AND start_time <= :current_time) AND
+                                 season_id = :season_id
+                                 ''')
+                    query = query.bindparams(
+                        game_status_id_not_played=game_status_id_not_played,
+                        current_date=current_date,
+                        current_time=current_time,
+                        season_id=season_id
+                    )
+                    res = await session.execute(query)
+                    return res.scalars().all()
+                except Exception as e:
+                    await session.rollback()
+                    raise
         
         @staticmethod
         async def is_season_game_id_season_id_exist(season_game_id: str, season_id: str) -> int | None:

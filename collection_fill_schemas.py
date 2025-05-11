@@ -33,5 +33,14 @@ while len(season_for_search) > 0 or count_exept > 50:
         print(f'{e=}')
         count_exept += 1
         season_for_search.append(season)
-        
+
+# # несколько тренеров https://www.championat.com/football/_russiapl/tournament/4465/match/949877/#stats
+# # по одному тренеру https://www.championat.com/football/_russiapl/tournament/1768/match/567360/#stats
+# with BrowserConnection() as br:
+#     gp = GamePage(br, 'https://www.championat.com/football/_russiapl/tournament/4465/match/949877/#stats')
+#     gp_res = gp.get_info()
+    
+# print(gp_res.left_coach_id)
+# print()
+# print(gp_res.right_coach_id)
 

@@ -67,8 +67,8 @@ class GamePageLocators(object):
     
     REFEREE_A = (By.XPATH, "//div[@class='match-info__extra']/div[2]/a[1]")
     
-    LEFT_COACH_A = (By.XPATH, "//div[@class='swiper-slide js-swiping-tabs-item'][1]/table/tbody/tr/td/a")
-    RIGHT_COACH_A = (By.XPATH, "//div[@class='swiper-slide js-swiping-tabs-item'][2]/table/tbody/tr/td/a")
+    LEFT_COACH_A = (By.XPATH, "(//div[contains(@class, 'swiper-slide')][.//div[contains(@class, 'tournament-title') and normalize-space()='Главные тренеры']][1]//a[contains(@class, 'table-item')])[1]") #//div[@class='swiper-slide js-swiping-tabs-item'][1]/table/tbody/tr/td/a
+    RIGHT_COACH_A = (By.XPATH, "(//div[contains(@class, 'swiper-slide')][.//div[contains(@class, 'tournament-title') and normalize-space()='Главные тренеры']][2]//a[contains(@class, 'table-item')])[1]") #//div[@class='swiper-slide js-swiping-tabs-item'][2]/table/tbody/tr/td/a
     
     LEFT_TEAM_GOALS = (By.XPATH, "//div[h2[contains(text(), 'Голы')]]/div[@class='match-stat']/div[@class='match-stat__row _team1']/div")
     RIGHT_TEAM_GOALS = (By.XPATH, "//div[h2[contains(text(), 'Голы')]]/div[@class='match-stat']/div[@class='match-stat__row _team2']/div")
