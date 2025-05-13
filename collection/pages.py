@@ -461,6 +461,11 @@ class GamePage(BasePage):
     def __init__(self, driver, page_href):
         super().__init__(driver, page_href)
         
+    
+    @staticmethod
+    def get_page_link(season_id: str, season_game_id: str) -> str:
+        return f'https://www.championat.com/football/_russiapl/tournament/{season_id}/match/{season_game_id}/#stats'
+        
         
     def _get_info_impl(self, only_info: bool) -> Game:
         original_window = self.driver.current_window_handle # запоминаем текущую страницу
@@ -492,6 +497,8 @@ class GamePage(BasePage):
                 right_coach_link = self.driver.find_element(*GamePageLocators.RIGHT_COACH_A).get_attribute('href')
                 right_coach_id = CoachID(right_coach_link.strip().split('/')[-2])
             except: pass
+            
+            print(f'\n\n\n\n\n\n{right_coach_id.id=}\n\n\n\n\n\n')
             
             # сбор информации о голах
             left_team_goals: list[Goal] = []
