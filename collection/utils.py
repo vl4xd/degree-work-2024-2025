@@ -556,7 +556,12 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     if not is_event_exist: await add_time_event(time_events, 'min_out', 'plus_min_out', right_lineup_df)
     
     
-    if not is_event_exist: time_events.add((0,0)) # Добавим для каждого матча начальное состояние 0 0
+    if not is_event_exist: 
+        # Добавим для каждого матча начальное состояние от 0 0 до 90 0
+        for i in range(91):
+            print(i)
+            time_events.add((i,0))
+            
     # Проходим по списку событий матча в которых произошли какие либо изменения
     for time_event in time_events:
         
