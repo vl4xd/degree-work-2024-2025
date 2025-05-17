@@ -1189,7 +1189,6 @@ class AsyncCore:
                         current_time=current_time,
                         season_id=season_id
                     )
-                    print(query)
                     res = await session.execute(query)
                     return res.scalars().all()
                 except Exception as e:
@@ -2658,7 +2657,6 @@ class AsyncCore:
                     query = text('''
                                  SELECT prediction_id FROM prediction_draw_left_right
                                  WHERE game_id=:game_id AND res_p IS NULL
-                                 
                                  ''')
                     query = query.bindparams(
                         game_id=game_id

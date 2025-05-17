@@ -771,14 +771,22 @@ async def insert_active_game_info_db(season_id: str, season_game_id: str):
         await simulate_match(game_id=game_id)
         
 
+async def manage_active_season():
+    pending_season_list = await check_season_id_in_db()
+    print(f'Выявленные необработанные сезоны manage_active_season: {pending_season_list}')
+    for pending_season in pending_season_list:
+        task = asyncio.create_task(insert_season_into_db(season_id=pending_season))
+        await asyncio.gather(task)
+    return
+
 #season_id: str, active_season_game_id: list[str]
 async def manage_active_game():
     season_id, active_season_game_id = await check_active_game_in_db()
-    print(active_season_game_id)
+    print(f'Выявленные активные игры manage_active_game: {active_season_game_id}')
     for season_game_id in active_season_game_id:
         task = asyncio.create_task(insert_active_game_info_db(season_id=season_id, season_game_id=season_game_id))
         await asyncio.gather(task)
     return
 
 
-asyncio.run(manage_active_game())
+# asyncio.run(manage_active_game())

@@ -1,14 +1,40 @@
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, BackgroundTasks
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
+from contextlib import asynccontextmanager
+
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from enum import Enum
 
+
+from collection.utils import (manage_active_season, manage_active_game)
+from prediction.utils import (manage_predict_game)
 from db.queries.core import AsyncCore as AC
 from db.schemasDto import * # noqa
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Запуск задач при старте приложения
+    scheduler = AsyncIOScheduler()
+    # Запуск manage_active_season каждые 60 секунд
+    scheduler.add_job(manage_active_season, CronTrigger(day=1, hour=0, minute=0))
+    # Запуск manage_active_game каждые 120 секунд
+    scheduler.add_job(manage_active_game, IntervalTrigger(seconds=30))
+    # Запуск manage_predict_game каждые 180 секунд
+    scheduler.add_job(manage_predict_game, IntervalTrigger(seconds=30))
+    scheduler.start()
+    yield
+    # Остановка задач при завершении приложения
+    scheduler.shutdown()
+    
+
+app = FastAPI(lifespan=lifespan)
 
 
 origins = [

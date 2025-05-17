@@ -10,7 +10,7 @@ sys.path.append(project_root)
 import asyncio
 
 from db.queries.core import AsyncCore as AC
-from model import ModelDrawLeftRight
+from prediction.model import ModelDrawLeftRight #from model import ModelDrawLeftRight
 
 
 async def check_predict_game_in_db():
@@ -23,7 +23,9 @@ async def check_predict_game_in_db():
 
 async def predict_game(game_id: int):
     prediction_id_list = await AC.PredictionDrawLeftRight.get_unpredicted_prediction_id(game_id=game_id)
+    print(f'get_unpredicted_prediction_id {prediction_id_list}')
     for prediction_id in prediction_id_list:
+        print(f'{prediction_id=}')
         model_left_draw_right = ModelDrawLeftRight()
         attributes = await AC.PredictionDrawLeftRight.get_attributes_prediction(prediction_id=prediction_id)
         draw_p, left_p, right_p, res_p = await model_left_draw_right.predict(*attributes)
@@ -43,7 +45,7 @@ async def train_model(game_id: int):
 
 async def insert_predict_game_into_db(game_id: int):
     
-    game_statud_id = await AC.Game.get_game_status_id_by_game_id(game_id=game_id)
+    game_status_id = await AC.Game.get_game_status_id_by_game_id(game_id=game_id)
     game_statud_id_played = 1
     game_status_id_played_not_predicted = 5
     
@@ -52,7 +54,7 @@ async def insert_predict_game_into_db(game_id: int):
     
     await predict_game(game_id=game_id)
     
-    if game_statud_id == game_status_id_played_not_predicted:
+    if game_status_id == game_status_id_played_not_predicted:
         await AC.PredictionDrawLeftRight.set_res(game_id=game_id) # Расчитываем результат игры по всем событиям
         # await train_model(game_id=game_id)
         await AC.Game.set_game_status_id_played_by_game_id(game_id=game_id) # Обновляем статус игры как "окончена (проанализирована)"
@@ -60,11 +62,12 @@ async def insert_predict_game_into_db(game_id: int):
 async def manage_predict_game():
     predict_game_id = await check_predict_game_in_db()    
     tasks = []
-    print(predict_game_id)
+    print(f'Выявленные игры для прогноза manage_predict_game: {predict_game_id}')
     for game_id in predict_game_id:
         task = asyncio.create_task(insert_predict_game_into_db(game_id=game_id))
         tasks.append(task)
     res = await asyncio.gather(*tasks)
     return res
 
-asyncio.run(manage_predict_game())
+
+# asyncio.run(manage_predict_game())
