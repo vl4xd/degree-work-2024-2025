@@ -255,6 +255,10 @@ class TeamPage(BasePage):
                 self.driver.switch_to.window(original_window) # возвращаемся на начальную страницу
     
     
+    @staticmethod
+    def get_page_link(season_id: str, season_team_id: str) -> str:
+        return f'https://www.championat.com/football/_russiapl/tournament/{season_id}/teams/{season_team_id}/result/'
+    
 class CoachPage(BasePage):
     
     

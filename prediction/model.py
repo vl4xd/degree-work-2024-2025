@@ -14,7 +14,7 @@ import asyncio
 
 class ModelDrawLeftRight:
     
-    def __init__(self, model_path: str = os.path.join(current_dir, 'model_cbc_5')):
+    def __init__(self, model_path: str = os.path.join(current_dir, 'model_cbc_without_goals')):
         self.model_params = {
             'iterations':1000,
             'early_stopping_rounds':50,
@@ -68,40 +68,40 @@ class ModelDrawLeftRight:
                     right_left_transfer_value_div: float,
                     res_event: int):
         data = [
-            left_coach_id,
-            right_coach_id,
-            referee_id,
-            left_num_v,
+            #left_coach_id,
+            #right_coach_id,
+            #referee_id,
+            #left_num_v,
             left_num_z,
             left_num_p,
             left_num_n,
-            left_num_u,
-            right_num_v,
+            #left_num_u,
+            #right_num_v,
             right_num_z,
             right_num_p,
             right_num_n,
-            right_num_u,
+            #right_num_u,
             left_num_y,
             left_num_y2r,
             right_num_y,
             right_num_y2r,
-            right_num_goal_g,
-            right_num_goal_p,
-            right_num_goal_a,
-            left_num_goal_g,
-            left_num_goal_p,
-            left_num_goal_a,
+            #right_num_goal_g,
+            #right_num_goal_p,
+            #right_num_goal_a,
+            #left_num_goal_g,
+            #left_num_goal_p,
+            #left_num_goal_a,
             left_total_transfer_value,
             right_total_transfer_value,
             left_avg_transfer_value,
             right_avg_transfer_value,
-            left_goal_score,
-            right_goal_score,
+            #left_goal_score,
+            #right_goal_score,
             left_avg_time_player_in_game,
             right_avg_time_player_in_game,
             left_right_transfer_value_div,
             right_left_transfer_value_div,
-            res_event
+            #res_event
         ]
         predict_proba = self.model.predict_proba(data)
         draw_p, left_p, right_p = predict_proba[0], predict_proba[1], predict_proba[2]
@@ -235,7 +235,3 @@ class ModelDrawLeftRight:
             print(f"Ошибка при дообучении модели: {str(e)}")
             # Восстанавливаем исходную модель в случае ошибки
             self._load_model()
-
-
-# m = ModelDrawLeftRight()
-# asyncio.run(m.predict(5681	,11950	,72	,1	,4	,4	,2	,0	,1	,4	,3	,3	,0	,0	,0	,0	,0	,0	,0	,0	,1	,0	,0	,34500000	,68300000	,3136363.6363636362	,6209090.909090909	,1	,0	,52.90909090909091	,56	,0.5051244509516838	,1.9797101449275363	,1))

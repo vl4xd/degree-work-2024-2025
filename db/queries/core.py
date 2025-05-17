@@ -1,6 +1,6 @@
 from datetime import datetime, time, date, timezone, timedelta
 
-from sqlalchemy import Integer, and_, func, insert, select, text, update
+from sqlalchemy import Integer, or_, and_, func, insert, select, text, update
 from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
 from asyncpg.exceptions import UniqueViolationError
@@ -8,6 +8,12 @@ import asyncio
 
 import pandas as pd
 from ..database import async_session_factory, sync_session_factory
+from ..schemasDto import (SeasonDto, SeasonAddDto,
+                          GameAddDto, GameDto,
+                          SortSeasonGameDto,
+                          SeasonTeamAddDto,
+                          PredictionDrawLeftRightDto, GamePredictionDrowLeftRightDto)
+from collection.pages import (SeasonPage, GamePage, TeamPage)
 
 
 class SyncCore:
@@ -106,6 +112,11 @@ class AsyncCore:
         utc_datetime_now = datetime.now(timezone.utc)
         moscow_datetime_now = utc_datetime_now + timedelta(hours=3) # МСК (UTC+3)
         return moscow_datetime_now.replace(tzinfo=None) # убираем часовой пояс
+    
+    async def check_sort_type(sort_type: str):
+        if sort_type.lower() == 'desc' or sort_type.lower() == 'asc':
+            return True
+        return False
     
     class Player:
         
@@ -313,6 +324,30 @@ class AsyncCore:
     class Season:
         
         @staticmethod
+        async def get_season_list() -> list[SeasonAddDto]:
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                                 SELECT * FROM season''')
+                    res = await session.execute(query)
+                    seasons = res.all()
+                    
+                    season_list = [
+                        SeasonAddDto(
+                            season_id=row.season_id,
+                            start_date=row.start_date,
+                            end_date=row.end_date,
+                            season_url=SeasonPage.get_page_link(row.season_id)
+                        )
+                        for row in seasons
+                    ]
+                    return season_list
+                except Exception as e:
+                    await session.rollback()
+                    raise
+        
+        
+        @staticmethod
         async def get_current_season_id() -> str | None:
             
             current_datetime = await AsyncCore.get_moscow_datetime_now()
@@ -460,7 +495,7 @@ class AsyncCore:
                     raise
                 
     class Team:
-        
+                
         @staticmethod
         async def is_team_id_exist(team_id: str) -> bool:
             async with async_session_factory() as session:
@@ -507,6 +542,53 @@ class AsyncCore:
                     raise
     
     class SeasonTeam:
+        
+        @staticmethod
+        async def get_season_team_list(season_id: str) -> list[SeasonTeamAddDto]:
+            async with async_session_factory() as session:
+                try:
+                    base_query = text('''
+                                 SELECT 
+                                    season_team.season_id AS season_id,
+                                    season_team.team_id AS team_id,
+                                    season_team.season_team_id AS season_team_id,
+                                    team.name AS name
+                                 FROM season_team
+                                 LEFT JOIN team ON season_team.team_id=team.team_id
+                                 ''')
+                    
+                    conditions = []
+                    params = {}
+                    
+                    if season_id:
+                        conditions.append(text("season_id=:season_id"))
+                        params['season_id'] = season_id
+                    
+                    if conditions:
+                        where_clause = and_(*conditions)
+                        query = text(f'{base_query}' + ' WHERE ' + str(where_clause))
+                    else:
+                        query = base_query
+                    
+                    res = await session.execute(query, params)
+
+                    season_teams = res.all()
+                    
+                    season_team_list = [
+                        SeasonTeamAddDto(
+                            season_id=row.season_id,
+                            team_id=row.team_id,
+                            season_team_id=row.season_team_id,
+                            name=row.name,
+                            season_team_url=TeamPage.get_page_link(row.season_id, row.season_team_id)
+                        )
+                        for row in season_teams
+                    ]
+                    return season_team_list
+                except Exception as e:
+                    await session.rollback()
+                    raise
+                
         
         @staticmethod
         async def is_season_id_team_id_exist(season_id: str,
@@ -943,6 +1025,95 @@ class AsyncCore:
                 
     class Game:
         
+        async def get_game_list(season_id: str,
+                                sort_type: str,
+                                game_statuses: list[int],
+                                left_team_id: str,
+                                right_team_id: str,
+                                from_start_date: date,
+                                to_start_date: date,
+                                limit,
+                                offset) -> list[GameAddDto]:
+            async with async_session_factory() as session:
+                try:
+                    base_query = text('''
+                                 SELECT * FROM game''')
+                    
+                    conditions = []
+                    params = {}
+                    
+                    if season_id:
+                        conditions.append(text("season_id=:season_id"))
+                        params['season_id'] = season_id
+
+                    if len(game_statuses) > 0:
+                        game_status_conditions = []
+                        for game_status_id in game_statuses:
+                            game_status_conditions.append(text(f"game_status_id = {game_status_id}"))
+                        conditions.append(or_(*game_status_conditions))
+
+                    if left_team_id:
+                        conditions.append(text("left_team_id=:left_team_id"))
+                        params['left_team_id'] = left_team_id
+
+                    if right_team_id:
+                        conditions.append(text("right_team_id=:right_team_id"))
+                        params['right_team_id'] = right_team_id
+
+                    if from_start_date:
+                        conditions.append(text("start_date>=:from_start_date"))
+                        params['from_start_date'] = from_start_date
+
+                    if to_start_date:
+                        conditions.append(text("start_date<=:to_start_date"))
+                        params['to_start_date'] = to_start_date
+                    
+                    if conditions:
+                        where_clause = and_(*conditions)
+                        query = text('SELECT * FROM game WHERE ' + str(where_clause))
+                    else:
+                        query = base_query
+                    
+                    if await AsyncCore.check_sort_type(sort_type):
+                        query = text(str(query) + ' ORDER BY start_date ' + sort_type)
+                        
+                    query = text(str(query) + ' LIMIT :limit OFFSET :offset')
+                    query = query.bindparams(
+                        limit=limit,
+                        offset=offset
+                    )
+                    
+                    res = await session.execute(query, params)
+                    
+                    games = res.all()
+                    
+                    game_list = [
+                        GameAddDto(
+                            game_id=int(row.game_id),
+                            season_game_id=row.season_game_id,
+                            season_id=row.season_id,
+                            left_team_id=row.left_team_id,
+                            right_team_id=row.right_team_id,
+                            game_status_id=int(row.game_status_id),
+                            left_coach_id=row.left_coach_id,
+                            right_coach_id=row.right_coach_id,
+                            tour_number=int(row.tour_number),
+                            start_date=row.start_date,
+                            start_time=row.start_time,
+                            min=row.min,
+                            plus_min=row.plus_min,
+                            created_at=row.created_at,
+                            updated_at=row.updated_at,
+                            game_url=GamePage.get_page_link(row.season_id, row.season_game_id)
+                        )
+                        for row in games
+                    ]
+                    return game_list
+                except Exception as e:
+                    await session.rollback()
+                    raise
+        
+        
         async def set_game_status_id_played_by_game_id(game_id: int):
             async with async_session_factory() as session:
                 try:
@@ -1008,7 +1179,7 @@ class AsyncCore:
                                  SELECT season_game_id FROM game
                                  WHERE 
                                  game_status_id NOT IN (:game_status_id_played, :game_status_id_played_not_predicted) AND 
-                                 start_date < :current_date OR (start_date = :current_date AND start_time <= :current_time) AND
+                                 (start_date < :current_date OR (start_date = :current_date AND start_time <= :current_time)) AND
                                  season_id = :season_id
                                  ''')
                     query = query.bindparams(
@@ -1018,6 +1189,7 @@ class AsyncCore:
                         current_time=current_time,
                         season_id=season_id
                     )
+                    print(query)
                     res = await session.execute(query)
                     return res.scalars().all()
                 except Exception as e:
@@ -1043,7 +1215,7 @@ class AsyncCore:
                                  SELECT game_id FROM game
                                  WHERE 
                                  game_status_id IN (:game_status_id_in_play, :game_status_id_played_not_predicted) AND 
-                                 start_date < :current_date OR (start_date = :current_date AND start_time <= :current_time) AND
+                                 (start_date < :current_date OR (start_date = :current_date AND start_time <= :current_time)) AND
                                  season_id = :season_id
                                  ''')
                     query = query.bindparams(
@@ -2263,6 +2435,11 @@ class AsyncCore:
         @staticmethod
         async def get_goal_df(game_id: int) -> pd.DataFrame:       
             async with async_session_factory() as session:
+                columns_query = text('SELECT * FROM penalty LIMIT 0')
+                columns_result = await session.execute(columns_query)
+                columns = columns_result.keys()
+                
+                
                 query = text('SELECT * FROM goal WHERE game_id=:game_id')
                 query = query.bindparams(
                     game_id=game_id
@@ -2271,7 +2448,11 @@ class AsyncCore:
                 result = await session.execute(query)
                 rows = result.mappings().all()
                 # Конвертируем в DataFrame
-                return pd.DataFrame(rows)
+                # return pd.DataFrame(rows)
+                if rows:
+                    return pd.DataFrame(rows)
+                else:
+                    return pd.DataFrame(columns=columns)
         
         @staticmethod
         async def get_goal_type_df() -> pd.DataFrame:
@@ -2299,6 +2480,12 @@ class AsyncCore:
         @staticmethod
         async def get_penalty_df(game_id: int) -> pd.DataFrame:        
             async with async_session_factory() as session:
+                # Запрос для получения столбцов таблицы penalty
+                columns_query = text('SELECT * FROM penalty LIMIT 0')
+                columns_result = await session.execute(columns_query)
+                columns = columns_result.keys()
+                
+                
                 query = text('SELECT * FROM penalty WHERE game_id=:game_id')
                 query = query.bindparams(
                     game_id=game_id
@@ -2307,7 +2494,11 @@ class AsyncCore:
                 result = await session.execute(query)
                 rows = result.mappings().all()
                 # Конвертируем в DataFrame
-                return pd.DataFrame(rows)
+                # return pd.DataFrame(rows)
+                if rows:
+                    return pd.DataFrame(rows)
+                else:
+                    return pd.DataFrame(columns=columns)
         
         
         @staticmethod
@@ -2360,6 +2551,82 @@ class AsyncCore:
                 
              
     class PredictionDrawLeftRight:
+        
+        @staticmethod
+        async def get_game_prediction(game_id: int, sort_type: str) -> GamePredictionDrowLeftRightDto:
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                                 SELECT * FROM prediction_draw_left_right
+                                 WHERE 
+                                 game_id=:game_id AND
+                                 res_p IS NOT NULL
+                                 ''')
+                    
+                    if await AsyncCore.check_sort_type(sort_type):
+                        query = text(str(query) + ' ORDER BY min ' + sort_type + ',')
+                        query = text(str(query) + ' plus_min ' + sort_type)
+                    
+                    params = {'game_id': game_id}
+                    
+                    res = await session.execute(query, params)
+                    predictions_res = res.all()
+                    
+                    prediction_list = [
+                        PredictionDrawLeftRightDto(
+                            prediction_id=row.prediction_id,
+                            min=row.min,
+                            plus_min=row.plus_min, 
+                            left_coach_id=row.left_coach_id,
+                            right_coach_id=row.right_coach_id,
+                            referee_id=row.referee_id,
+                            left_num_v=row.left_num_v,
+                            left_num_z=row.left_num_z,
+                            left_num_p=row.left_num_p,
+                            left_num_n=row.left_num_n,
+                            left_num_u=row.left_num_u,
+                            right_num_v=row.right_num_v,
+                            right_num_z=row.right_num_z,
+                            right_num_p=row.right_num_p,
+                            right_num_n=row.right_num_n,
+                            right_num_u=row.right_num_u,
+                            left_num_y=row.left_num_y,
+                            left_num_y2r=row.left_num_y2r,
+                            right_num_y=row.right_num_y, 
+                            right_num_y2r=row.right_num_y2r, 
+                            right_num_goal_g=row.right_num_goal_g, 
+                            right_num_goal_p=row.right_num_goal_p, 
+                            right_num_goal_a=row.right_num_goal_a, 
+                            left_num_goal_g=row.left_num_goal_g, 
+                            left_num_goal_p=row.left_num_goal_p, 
+                            left_num_goal_a=row.left_num_goal_a, 
+                            left_total_transfer_value=row.left_total_transfer_value, 
+                            right_total_transfer_value=row.right_total_transfer_value, 
+                            left_avg_transfer_value=row.left_avg_transfer_value, 
+                            right_avg_transfer_value=row.right_avg_transfer_value, 
+                            left_goal_score=row.left_goal_score, 
+                            right_goal_score=row.right_goal_score, 
+                            left_avg_time_player_in_game=row.left_avg_time_player_in_game, 
+                            right_avg_time_player_in_game=row.right_avg_time_player_in_game, 
+                            left_right_transfer_value_div=row.left_right_transfer_value_div, 
+                            right_left_transfer_value_div=row.right_left_transfer_value_div, 
+                            res_event=row.res_event,
+                            draw_p=row.draw_p, 
+                            left_p=row.left_p, 
+                            right_p=row.right_p, 
+                            res_p=row.res_p,
+                            res=row.res,
+                            created_at=row.created_at,
+                            updated_at=row.updated_at
+                        )
+                        for row in predictions_res
+                    ]
+                    
+                    return GamePredictionDrowLeftRightDto(game_id=game_id, prediction_list=prediction_list)
+                except Exception as e:
+                    await session.rollback()
+                    raise
+        
         
         @staticmethod
         async def is_prediction_draw_left_right_exist(game_id: int,

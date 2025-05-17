@@ -480,6 +480,9 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     df_penalty_type = await AC.TableToDataFrame.get_penalty_type_df()
     game_player_stat_amplua = await AC.TableToDataFrame.get_lineup_player_stat_for_game(game_id=game_id) # Получаем информацию о игроках, учавствующих в данной игре (амплуа)
     
+    print(df_goal)
+    print(df_penalty)
+    
     # Объединяем главного судью с матчем
     df_game = df_game.join(df_referee_game.set_index('game_id'), 'game_id')
     if not is_event_exist: time_events = set() # Время возникновения какого либо события в матче
@@ -494,9 +497,10 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     left_goals_df['plus_min'] = left_goals_df['plus_min'].fillna(0) # Заполняем добавленной время гола (None - без добавленного времени)
     left_goals_df.sort_values(by=['min', 'plus_min'], ascending=[True, True]) # Сортируем по времени забитых голов
     left_goals_df = left_goals_df.join(df_goal_type.set_index('goal_type_id'), 'goal_type_id') # Объединяем голы с типом гола
-    if not is_event_exist: await add_time_event(time_events, 'min', 'plus_min', left_goals_df) # Добавляем время событий "гол" во временное множество
+    # Модель изменена, перестаем считать голы за событие 
+    #if not is_event_exist: await add_time_event(time_events, 'min', 'plus_min', left_goals_df) # Добавляем время событий "гол" во временное множество
     
-    # Находим наказания, полученные левой командой
+    # Находим наказания, полученные левой командой (наказаний может и не быть)
     left_penalty_df = df_penalty.loc[(df_penalty['game_id']==game_id) & (df_penalty['team_id']==left_team_id)]
     left_penalty_df = left_penalty_df.join(df_penalty_type.set_index('penalty_type_id'), 'penalty_type_id') # Объединяем наказание с типом наказания
     left_penalty_df['plus_min'] = left_penalty_df['plus_min'].fillna(0) # Заполняем добавленной время наказания (None - без добавленного времени)
@@ -528,7 +532,8 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     right_goals_df['plus_min'] = right_goals_df['plus_min'].fillna(0)
     right_goals_df.sort_values(by=['min', 'plus_min'], ascending=[True, True])
     right_goals_df = right_goals_df.join(df_goal_type.set_index('goal_type_id'), 'goal_type_id')
-    if not is_event_exist: await add_time_event(time_events, 'min', 'plus_min', right_goals_df) 
+    # Модель изменена, перестаем считать голы за событие 
+    #if not is_event_exist: await add_time_event(time_events, 'min', 'plus_min', right_goals_df) 
     
     right_penalty_df = df_penalty.loc[(df_penalty['game_id']==game_id) & (df_penalty['team_id']==right_team_id)]
     right_penalty_df = right_penalty_df.join(df_penalty_type.set_index('penalty_type_id'), 'penalty_type_id')
@@ -558,7 +563,7 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     
     if not is_event_exist: 
         # Добавим для каждого матча начальное состояние от 0 0 до 90 0
-        for i in range(91):
+        for i in range(1):
             print(i)
             time_events.add((i,0))
             
@@ -753,8 +758,14 @@ async def insert_active_game_info_db(season_id: str, season_game_id: str):
         return
     
     if game.is_played == game_status_id_in_play:
-        time_events = ((game.cur_min, game.cur_plus_min))
-        await simulate_match(game_id=game_id, time_events=time_events, is_event_exist=True)
+        # если матч в игре то не обязательно передавать для вычисления текущее значение времени тк
+        # алгоритм сам вычислит время наказаний и перестановок
+        # time_events = set([game.cur_min, game.cur_plus_min])
+        # print(f'{game.cur_min=}')
+        # print(f'{game.cur_plus_min=}')
+        # print(f'\n\n\n\n{time_events=}\n\n\n\n\n')
+        # await simulate_match(game_id=game_id, time_events=time_events, is_event_exist=True)
+        await simulate_match(game_id=game_id)
     
     if game.is_played == game_status_id_played_not_predicted:
         await simulate_match(game_id=game_id)
