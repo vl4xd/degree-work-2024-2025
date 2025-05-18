@@ -56,7 +56,7 @@ async def insert_unknown_season_player_into_db(season_id: str, unknown_season_pl
     if len(unknown_season_player) == 0: return
     with BrowserConnection() as br:
         for player_id in unknown_season_player:
-            pp = PlayerPage(br, PlayerPage.get_player_page_link(season_id=season_id, player_id=player_id))
+            pp = PlayerPage(br, PlayerPage.get_page_link(season_id=season_id, player_id=player_id))
             player_info: Player = pp.get_info()
             await AC.Player.update_player_data(player_id=player_id,
                                                 first_name=player_info.first_name,
@@ -480,8 +480,6 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     df_penalty_type = await AC.TableToDataFrame.get_penalty_type_df()
     game_player_stat_amplua = await AC.TableToDataFrame.get_lineup_player_stat_for_game(game_id=game_id) # Получаем информацию о игроках, учавствующих в данной игре (амплуа)
     
-    print(df_goal)
-    print(df_penalty)
     
     # Объединяем главного судью с матчем
     df_game = df_game.join(df_referee_game.set_index('game_id'), 'game_id')
@@ -496,6 +494,7 @@ async def simulate_match(game_id: int, time_events: set = None, is_event_exist: 
     left_goals_df = df_goal.loc[(df_goal['game_id']==game_id) & (df_goal['team_id']==left_team_id)]
     left_goals_df['plus_min'] = left_goals_df['plus_min'].fillna(0) # Заполняем добавленной время гола (None - без добавленного времени)
     left_goals_df.sort_values(by=['min', 'plus_min'], ascending=[True, True]) # Сортируем по времени забитых голов
+    print(f'Левые голы: {left_goals_df}')
     left_goals_df = left_goals_df.join(df_goal_type.set_index('goal_type_id'), 'goal_type_id') # Объединяем голы с типом гола
     # Модель изменена, перестаем считать голы за событие 
     #if not is_event_exist: await add_time_event(time_events, 'min', 'plus_min', left_goals_df) # Добавляем время событий "гол" во временное множество

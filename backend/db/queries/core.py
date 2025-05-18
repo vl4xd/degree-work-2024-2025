@@ -2434,7 +2434,7 @@ class AsyncCore:
         @staticmethod
         async def get_goal_df(game_id: int) -> pd.DataFrame:       
             async with async_session_factory() as session:
-                columns_query = text('SELECT * FROM penalty LIMIT 0')
+                columns_query = text('SELECT * FROM goal LIMIT 0')
                 columns_result = await session.execute(columns_query)
                 columns = columns_result.keys()
                 
@@ -2448,6 +2448,7 @@ class AsyncCore:
                 rows = result.mappings().all()
                 # Конвертируем в DataFrame
                 # return pd.DataFrame(rows)
+                print(f'Колонки для пустого датафрейма голы {columns}')
                 if rows:
                     return pd.DataFrame(rows)
                 else:
