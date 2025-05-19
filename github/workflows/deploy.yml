@@ -17,4 +17,4 @@ jobs:
           username: ${{ secret.VPS_USER }}
           key: ${{ secret.SSH_PRIVATE_KEY }}
           source: './*'
-          target: '/path/to/your/app'
+          target: '/root/server-app/'
