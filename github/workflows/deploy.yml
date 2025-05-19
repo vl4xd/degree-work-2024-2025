@@ -1,0 +1,20 @@
+name: Deploy to VPS
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.0
+        with:
+          host: ${{ secret.VPS_HOST }}
+          username: ${{ secret.VPS_USER }}
+          key: ${{ secret.SSH_PRIVATE_KEY }}
+          source: './*'
+          target: '/path/to/your/app'
