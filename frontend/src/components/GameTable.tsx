@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import { Table, Select, DatePicker, Button, Space, Alert } from 'antd';
 import moment from 'moment';
+import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -22,6 +23,7 @@ interface SeasonTeam {
 }
 
 interface Game {
+    game_id: number;
     season_game_id: string;
     season_id: string;
     left_team_id: string;
@@ -40,6 +42,7 @@ interface Game {
 }
 
 const GameTable: React.FC = () => {
+    const navigate = useNavigate();
     const [seasons, setSeasons] = useState<Season[]>([]);
     const [seasonTeams, setSeasonTeams] = useState<SeasonTeam[]>([]);
     const [games, setGames] = useState<Game[]>([]);
@@ -85,7 +88,6 @@ const GameTable: React.FC = () => {
 
         let queryString = `sort_type=ASC&season_id=${selectedSeason}&limit=${pagination.limit}&offset=${pagination.page * pagination.limit}`;
 
-        // Добавляем каждый game_status_id как отдельный параметр
         gameStatuses.forEach((status) => {
             queryString += `&game_statuses=${status}`;
         });
@@ -110,7 +112,7 @@ const GameTable: React.FC = () => {
 
     useEffect(() => {
         fetchSeasonTeams();
-        setSelectedTeams({ leftTeamId: '', rightTeamId: '' }); // Сброс выбранных команд
+        setSelectedTeams({ leftTeamId: '', rightTeamId: '' });
     }, [selectedSeason, fetchSeasonTeams]);
 
     useEffect(() => {
@@ -143,6 +145,10 @@ const GameTable: React.FC = () => {
 
     const clearDateRange = () => {
         setDateRange([null, null]);
+    };
+
+    const clearGameStatuses = () => {
+        setGameStatuses([]);
     };
 
     const getGameStatusName = (statusId: number) => {
@@ -228,18 +234,21 @@ const GameTable: React.FC = () => {
                 <Button onClick={clearDateRange} style={{ marginLeft: 8 }}>Очистить</Button>
             </div>
 
-            <Select
-                mode="multiple"
-                placeholder="Выберите статусы игр"
-                value={gameStatuses}
-                onChange={setGameStatuses}
-                style={{ width: '100%' }}
-            >
-                <Option value={0}>Не начата</Option>
-                <Option value={1}>Завершена</Option>
-                <Option value={2}>Перерыв</Option>
-                <Option value={3}>В процессе</Option>
-            </Select>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Select
+                    mode="multiple"
+                    placeholder="Выберите статусы игр"
+                    value={gameStatuses}
+                    onChange={setGameStatuses}
+                    style={{ flex: 1 }}
+                >
+                    <Option value={0}>Не начата</Option>
+                    <Option value={1}>Завершена</Option>
+                    <Option value={2}>Перерыв</Option>
+                    <Option value={3}>В процессе</Option>
+                </Select>
+                <Button onClick={clearGameStatuses} style={{ marginLeft: 8 }}>Очистить</Button>
+            </div>
 
             <Table
                 columns={columns}
@@ -248,6 +257,11 @@ const GameTable: React.FC = () => {
                 loading={loading.games}
                 style={{ width: '100%' }}
                 pagination={false}
+                onRow={(record) => ({
+                    onClick: () => {
+                        navigate(`/rpl/game?game_id=${record.game_id}`);
+                    },
+                })}
             />
 
             <div style={{

@@ -4,6 +4,7 @@ import { Button, Progress } from 'antd';
 import { SyncOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 
 interface Prediction {
@@ -116,9 +117,12 @@ function GamePredictionTable(){
         }
     };
     
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const gameId = queryParams.get('game_id'); // Используем переданный game_id или значение по умолчанию
 
     const fetchGamePrediction = useCallback(() => {
-        axios.get<GamePrediction>('http://127.0.0.1:8000/season/game/prediction?game_id=11077&sort_type=DESC')
+        axios.get<GamePrediction>(`http://127.0.0.1:8000/season/game/prediction?game_id=${gameId}&sort_type=DESC`)
             .then(response => {
                 const gamePredictionResponse = response.data;
                 const predictions = gamePredictionResponse.prediction_list;
@@ -159,7 +163,7 @@ function GamePredictionTable(){
             .catch(error => {
                 console.log(error);
             });
-    }, []);
+    }, [gameId]);
     
 
     const getChangeIndicator = (current: number, previous: number) => {
