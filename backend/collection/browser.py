@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from pyvirtualdisplay import Display
 from webdriver_manager.chrome import ChromeDriverManager
 
 import asyncio
@@ -47,6 +48,9 @@ class AsyncBrowserConnection:
 
     async def __aenter__(self):
         
+        self.display = Display(visible=0, size=(1024, 768))
+        self.display.start()
+        
         options = Options()
         # options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
         # options.set_preference('media.volume_scale', '0.0')
@@ -77,4 +81,5 @@ class AsyncBrowserConnection:
         await self.loop.run_in_executor(
             self.executor,
             self.browser.quit)
+        self.display.stop()
     
