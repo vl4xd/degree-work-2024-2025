@@ -13,8 +13,8 @@ jobs:
       - name: Copy files to VPS
         uses: appleboy/scp-action@v0.1.0
         with:
-          host: ${{ secret.VPS_HOST }}
-          username: ${{ secret.VPS_USER }}
-          key: ${{ secret.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: './*'
           target: '/root/server-app/'
