@@ -1,4 +1,8 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -13,7 +17,7 @@ class BrowserConnection:
         options = webdriver.FirefoxOptions()
         options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
         options.set_preference('media.volume_scale', '0.0')
-        options.add_argument('--headless') # не запускать GUI браузера
+        # options.add_argument('--headless') # не запускать GUI браузера
         options.set_preference('general.useragent.override', 'useragent1')
         
         self.browser = webdriver.Firefox(options=options)
@@ -38,17 +42,23 @@ class AsyncBrowserConnection:
     def __init__(self):
         self.executor = ThreadPoolExecutor()
         self.loop = asyncio.get_event_loop()
+        
 
     async def __aenter__(self):
-        options = webdriver.FirefoxOptions()
-        options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
-        options.set_preference('media.volume_scale', '0.0')
-        options.add_argument('--headless') # не запускать GUI браузера
-        options.set_preference('general.useragent.override', 'useragent1')
+        
+        options = Options()
+        # options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
+        # options.set_preference('media.volume_scale', '0.0')
+        # options.add_argument('--headless') # не запускать GUI браузера
+        options.add_argument('--disable-gpu')
+        options.add_argument('--enable-unsafe-swiftshader')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        # options.set_preference('general.useragent.override', 'useragent1')
         
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Firefox(options=options))
+            lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options))
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд

@@ -54,7 +54,7 @@ async def insert_unknown_season_player_into_db(season_id: str, unknown_season_pl
     '''Обработка выявленных игроков со страниц матчей поскольку полный сбор данных об игроках ведется через состав команд'''
     print(f'\nseason: {season_id}\nplayers: {unknown_season_player}')
     if len(unknown_season_player) == 0: return
-    with BrowserConnection() as br:
+    async with AsyncBrowserConnection() as br:
         for player_id in unknown_season_player:
             pp = PlayerPage(br, PlayerPage.get_page_link(season_id=season_id, player_id=player_id))
             player_info: Player = pp.get_info()
@@ -350,7 +350,7 @@ async def check_season_id_in_db(first_season:str = '2016/2017') -> list[str]:
     
     # Список доступных сезонов
     all_season_list = []
-    with BrowserConnection() as br:
+    async with AsyncBrowserConnection() as br:
         season_page = SeasonPage(br)
         # Получение списка доступных сезонов
         all_season_list = season_page.get_season_list_options()
@@ -365,7 +365,7 @@ async def check_season_id_in_db(first_season:str = '2016/2017') -> list[str]:
     
     # Список с сезонами ожидающими сбор данных
     pending_season_list = []
-    with BrowserConnection() as br:
+    async with AsyncBrowserConnection() as br:
         for season in considered_season_list:
                 season_page = SeasonPage(br)
                 season_page.go_to_season(season)
