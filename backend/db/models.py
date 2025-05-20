@@ -3,7 +3,7 @@ from sqlalchemy import ForeignKey, Index, UniqueConstraint, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeMeta
 from datetime import date, time, datetime
 
-from .database import Base, int_3, str_100, str_200
+from db.database import Base, int_3, str_100, str_200
 
 intpk_a = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
 intpk_m = Annotated[int, mapped_column(primary_key=True, autoincrement=False)]
