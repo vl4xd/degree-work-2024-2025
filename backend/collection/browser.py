@@ -58,7 +58,7 @@ class AsyncBrowserConnection:
         self.browser = await self.loop.run_in_executor(
             self.executor,
             lambda: webdriver.Remote(
-                command_executor='http://127.0.0.1:4444/wd/hub',
+                command_executor='http://0.0.0.0:4444/wd/hub',
                 options=options,
             )
         )

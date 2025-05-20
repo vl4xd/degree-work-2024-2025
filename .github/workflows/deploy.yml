@@ -61,12 +61,15 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Завершение предыдущего экземпляра geckodriver
-            sudo kill -9 $(sudo lsof -t -i :4444) 2>/dev/null
+            # Убиваем предыдущий процесс
+            sudo pkill -f "geckodriver.*4444" 2>/dev/null || true
 
-            # Запуск нового экземпляра geckodriver
-            nohup geckodriver --host 0.0.0.0 --port 4444 &
-            sleep 5  # Даем время на запуск
+            # Запускаем с полным перенаправлением потоков и отсоединением
+            nohup geckodriver --host 0.0.0.0 --port 4444 >/dev/null 2>&1 </dev/null &
+            disown -h $!
+
+            # Проверка доступности порта
+            timeout 15 bash -c 'until nc -z 0.0.0.0 4444; do sleep 1; done' || exit 1
 
       - name: Start Backend
         uses: appleboy/ssh-action@v0.1.10
