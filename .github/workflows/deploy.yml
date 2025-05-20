@@ -61,6 +61,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Завершение предыдущего экземпляра geckodriver
+            sudo kill $(sudo lsof -t -i :4444) 2>/dev/null
+
+            # Запуск нового экземпляра geckodriver
             nohup geckodriver --host 0.0.0.0 --port 4444 &
             sleep 5  # Даем время на запуск
 
