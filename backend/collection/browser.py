@@ -1,8 +1,10 @@
 from selenium import webdriver
+from pyvirtualdisplay import Display
 from selenium.webdriver.firefox.service import Service
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+DISPLAY = Display(visible=0, size=(1280, 1024))
 
 class BrowserConnection:
     """Контекстный менеджер веб-браузера Firefox
@@ -41,7 +43,7 @@ class AsyncBrowserConnection:
         self.executor = ThreadPoolExecutor()
         self.loop = asyncio.get_event_loop()
 
-    async def __aenter__(self):
+    async def __aenter__(self):        
         options = webdriver.FirefoxOptions()
         options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
         options.set_preference('media.volume_scale', '0.0')
@@ -54,13 +56,12 @@ class AsyncBrowserConnection:
         # options.add_argument("--start-maximized")
         options.set_preference('general.useragent.override', 'useragent1')
         
+        DISPLAY.start()
+        
         # service = Service(executable_path='/usr/local/bin/geckodriver')
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Remote(
-                command_executor='http://0.0.0.0:4444/wd/hub',
-                options=options,
-            )
+            lambda: webdriver.Firefox(options=options)
         )
         
         # Устанавливаем тайм-аут для поиска элементов
@@ -78,6 +79,7 @@ class AsyncBrowserConnection:
         await self.loop.run_in_executor(
             self.executor,
             self.browser.quit)
+        DISPLAY.stop()
         
 
 
