@@ -49,9 +49,9 @@ class AsyncBrowserConnection:
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument("--disable-gpu")
-        options.add_argument("--hide-scrollbars")
+        # options.add_argument("--hide-scrollbars")
         options.add_argument("--disable-notifications")
-        options.add_argument("--start-maximized")
+        # options.add_argument("--start-maximized")
         options.set_preference('general.useragent.override', 'useragent1')
         
         # service = Service(executable_path='/usr/local/bin/geckodriver')

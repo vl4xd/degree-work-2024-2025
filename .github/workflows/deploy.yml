@@ -54,24 +54,6 @@ jobs:
             cd /root/server-app/frontend
             npm install
 
-      - name: Start geckodriver
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          script: |
-            # Убиваем предыдущий процесс
-            sudo pkill -f "geckodriver.*4444" 2>/dev/null || true
-
-            # Запускаем в новом сеансе с перенаправлением потоков
-            setsid geckodriver --host 0.0.0.0 --port 4444 >/dev/null 2>&1 &
-
-            # Проверка доступности порта
-            timeout 15 bash -c 'until nc -z 0.0.0.0 4444; do sleep 1; done' || exit 1
-          timeout: 60s  # Increase timeout to 60 seconds
-          command_timeout: 15m
-
       - name: Start Backend
         uses: appleboy/ssh-action@v0.1.10
         with:
