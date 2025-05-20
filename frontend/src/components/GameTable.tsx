@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import { Table, Select, DatePicker, Button, Space, Alert } from 'antd';
-import moment from 'moment';
+// import moment from 'moment';
+import { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
@@ -48,7 +49,8 @@ const GameTable: React.FC = () => {
     const [games, setGames] = useState<Game[]>([]);
     const [selectedSeason, setSelectedSeason] = useState<string>('');
     const [selectedTeams, setSelectedTeams] = useState<{ leftTeamId: string; rightTeamId: string }>({ leftTeamId: '', rightTeamId: '' });
-    const [dateRange, setDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+    // const [dateRange, setDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+    const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
     const [gameStatuses, setGameStatuses] = useState<number[]>([0, 2, 3]);
     const [loading, setLoading] = useState({
         seasons: true,
@@ -227,7 +229,8 @@ const GameTable: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center' }}>
                 <RangePicker
                     value={dateRange}
-                    onChange={dates => setDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+                    // onChange={dates => setDateRange(dates as [moment.Moment | null, moment.Moment | null])}
+                    onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null])}
                     allowClear={false}
                     style={{ flex: 1 }}
                 />
