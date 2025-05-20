@@ -122,7 +122,7 @@ function GamePredictionTable(){
     const gameId = queryParams.get('game_id'); // Используем переданный game_id или значение по умолчанию
 
     const fetchGamePrediction = useCallback(() => {
-        axios.get<GamePrediction>(`http://127.0.0.1:8000/season/game/prediction?game_id=${gameId}&sort_type=DESC`)
+        axios.get<GamePrediction>(`http://localhost:8000/season/game/prediction?game_id=${gameId}&sort_type=DESC`)
             .then(response => {
                 const gamePredictionResponse = response.data;
                 const predictions = gamePredictionResponse.prediction_list;
