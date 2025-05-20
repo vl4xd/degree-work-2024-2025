@@ -29,6 +29,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /root/server-app/backend
+            python3 -m venv venv
+            source venv/bin/activate
             pip install -r requirements.txt
 
       - name: Run Database Migrations
@@ -39,6 +41,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /root/server-app/backend
+            source venv/bin/activate
             alembic upgrade head
 
       - name: Install Frontend Dependencies
@@ -59,6 +62,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /root/server-app/backend
+            source venv/bin/activate
             nohup python main.py &
 
       - name: Build Frontend
