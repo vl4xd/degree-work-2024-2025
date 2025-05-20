@@ -57,8 +57,6 @@ class AsyncBrowserConnection:
         options.add_argument('--disable-dev-shm-usage')
         # options.set_preference('general.useragent.override', 'useragent1')
         
-        DISPLAY.start()
-        
         # service = Service(executable_path='/usr/local/bin/geckodriver')
         self.browser = await self.loop.run_in_executor(
             self.executor,
