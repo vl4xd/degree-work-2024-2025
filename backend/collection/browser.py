@@ -16,7 +16,7 @@ class BrowserConnection:
         options.add_argument('--headless') # не запускать GUI браузера
         options.set_preference('general.useragent.override', 'useragent1')
         
-        self.browser = webdriver.Firefox(options=options)
+        self.browser = webdriver.Firefox(options=options, executable_path='/usr/local/bin/geckodriver') # executable_path на сервере
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
@@ -48,7 +48,7 @@ class AsyncBrowserConnection:
         
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Firefox(options=options))
+            lambda: webdriver.Firefox(options=options, executable_path='/usr/local/bin/geckodriver'))
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
