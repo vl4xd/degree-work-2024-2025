@@ -54,6 +54,16 @@ jobs:
             cd /root/server-app/frontend
             npm install
 
+      - name: Start geckodriver
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            nohup geckodriver --host 0.0.0.0 --port 4444 &
+            sleep 5  # Даем время на запуск
+
       - name: Start Backend
         uses: appleboy/ssh-action@v0.1.10
         with:

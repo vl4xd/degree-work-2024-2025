@@ -17,8 +17,8 @@ class BrowserConnection:
         options.add_argument('--headless') # не запускать GUI браузера
         options.set_preference('general.useragent.override', 'useragent1')
         
-        service = Service(executable_path='/usr/local/bin/geckodriver')
-        self.browser = webdriver.Firefox(options=options, service=service) # executable_path на сервере
+        # service = Service(executable_path='/usr/local/bin/geckodriver')
+        self.browser = webdriver.Firefox(options=options) # service = serviese сервере
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
@@ -48,10 +48,14 @@ class AsyncBrowserConnection:
         options.add_argument('--headless') # не запускать GUI браузера
         options.set_preference('general.useragent.override', 'useragent1')
         
-        service = Service(executable_path='/usr/local/bin/geckodriver')
+        # service = Service(executable_path='/usr/local/bin/geckodriver')
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Firefox(options=options, service=service))
+            lambda: webdriver.Remote(
+                command_executor='http://90.156.155.231:4444/wd/hub',
+                options=options,
+            )
+        )
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
