@@ -4,7 +4,7 @@ COPY package.json package.json
 RUN npm install
 
 COPY . .
-RUN npm run build
+RUN npm run dev
 
 FROM nginx:stable-alpine
 
