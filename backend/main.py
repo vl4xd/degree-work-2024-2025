@@ -99,4 +99,4 @@ async def get_prediction(game_id: int, sort_type: SortName):
 
 
 if __name__=='__main__':
-    uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True)
+    uvicorn.run('main:app', host='90.156.155.231', port=8000, reload=True)
