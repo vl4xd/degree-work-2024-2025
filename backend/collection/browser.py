@@ -1,10 +1,11 @@
 from selenium import webdriver
-from pyvirtualdisplay import Display
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-DISPLAY = Display(visible=0, size=(1280, 1024))
 
 class BrowserConnection:
     """Контекстный менеджер веб-браузера Firefox
@@ -16,7 +17,7 @@ class BrowserConnection:
         options = webdriver.FirefoxOptions()
         options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
         options.set_preference('media.volume_scale', '0.0')
-        options.add_argument('--headless') # не запускать GUI браузера
+        # options.add_argument('--headless') # не запускать GUI браузера
         options.set_preference('general.useragent.override', 'useragent1')
         
         # service = Service(executable_path='/usr/local/bin/geckodriver')
@@ -42,27 +43,26 @@ class AsyncBrowserConnection:
     def __init__(self):
         self.executor = ThreadPoolExecutor()
         self.loop = asyncio.get_event_loop()
+        
 
-    async def __aenter__(self):        
-        options = webdriver.FirefoxOptions()
-        options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
-        options.set_preference('media.volume_scale', '0.0')
-        options.add_argument('--headless') # не запускать GUI браузера
+    async def __aenter__(self):
+        
+        options = Options()
+        # options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
+        # options.set_preference('media.volume_scale', '0.0')
+        # options.add_argument('--headless') # не запускать GUI браузера
+        options.add_argument('--disable-gpu')
+        options.add_argument('--enable-unsafe-swiftshader')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        options.add_argument("--disable-gpu")
-        # options.add_argument("--hide-scrollbars")
-        options.add_argument("--disable-notifications")
-        # options.add_argument("--start-maximized")
-        options.set_preference('general.useragent.override', 'useragent1')
+        # options.set_preference('general.useragent.override', 'useragent1')
         
         DISPLAY.start()
         
         # service = Service(executable_path='/usr/local/bin/geckodriver')
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Firefox(options=options)
-        )
+            lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options))
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
@@ -79,8 +79,4 @@ class AsyncBrowserConnection:
         await self.loop.run_in_executor(
             self.executor,
             self.browser.quit)
-        DISPLAY.stop()
-        
-
-
     
