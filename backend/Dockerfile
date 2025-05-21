@@ -14,5 +14,5 @@ RUN apt-get update && \
     apt-get clean
 
 COPY . .
-
-CMD ["sh", "-c", "Xvfb :1 -screen 0 1024x768x16 & export DISPLAY=:1 && python main.py"]
+#"sh", "-c", "Xvfb :1 -screen 0 1024x768x16 & export DISPLAY=:1 && 
+CMD ["python", "main.py"]
