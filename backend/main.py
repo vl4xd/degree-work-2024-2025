@@ -20,20 +20,21 @@ from db.schemasDto import * # noqa
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Выполнение manage_active_season при первом запуске приложения
-    await manage_active_season()
-    # Запуск задач при старте приложения
-    scheduler = AsyncIOScheduler()
-    # Запуск manage_active_season каждый первый день месяца
-    scheduler.add_job(manage_active_season, CronTrigger(day=1, hour=0, minute=0))
-    # Запуск manage_active_game каждые 120 секунд
-    scheduler.add_job(manage_active_game, IntervalTrigger(seconds=30))
-    # Запуск manage_predict_game каждые 180 секунд
-    scheduler.add_job(manage_predict_game, IntervalTrigger(seconds=30))
-    scheduler.start()
-    yield
-    # Остановка задач при завершении приложения
-    scheduler.shutdown()
+    # # Выполнение manage_active_season при первом запуске приложения
+    # await manage_active_season()
+    # # Запуск задач при старте приложения
+    # scheduler = AsyncIOScheduler()
+    # # Запуск manage_active_season каждый первый день месяца
+    # scheduler.add_job(manage_active_season, CronTrigger(day=1, hour=0, minute=0))
+    # # Запуск manage_active_game каждые 120 секунд
+    # scheduler.add_job(manage_active_game, IntervalTrigger(seconds=30))
+    # # Запуск manage_predict_game каждые 180 секунд
+    # scheduler.add_job(manage_predict_game, IntervalTrigger(seconds=30))
+    # scheduler.start()
+    # yield
+    # # Остановка задач при завершении приложения
+    # scheduler.shutdown()
+    pass
     
 
 app = FastAPI(lifespan=lifespan)
