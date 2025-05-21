@@ -11,6 +11,4 @@ RUN apt-get update && apt-get install -y wget unzip && \
 
 COPY . .
 
-RUN alembic upgrade head
-
 CMD ["python", "main.py"]
