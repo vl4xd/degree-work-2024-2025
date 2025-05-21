@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y wget unzip && \
     rm google-chrome-stable_current_amd64.deb && \
     apt-get clean
 
+RUN apt-get update && \
+    apt-get install -y xvfb && \
+    apt-get clean
+
 COPY . .
 
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "Xvfb :1 -screen 0 1024x768x16 & export DISPLAY=:1 && python main.py"]
