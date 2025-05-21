@@ -63,7 +63,6 @@ class SortName(str, Enum):
 
 @app.get('/seasons', response_class=JSONResponse, summary='Получение списка всех сезонов РПЛ', tags=['Сезоны'])
 async def get_seasons():
-    return {'a':'a'}
     try:
         return await AC.Season.get_season_list()
     except Exception as e:
