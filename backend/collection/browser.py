@@ -54,7 +54,7 @@ class AsyncBrowserConnection:
         options = Options()
         # options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
         # options.set_preference('media.volume_scale', '0.0')
-        # options.add_argument('--headless') # не запускать GUI браузера
+        options.add_argument('--headless') # не запускать GUI браузера
         options.add_argument('--disable-gpu')
         options.add_argument('--enable-unsafe-swiftshader')
         options.add_argument('--no-sandbox')
