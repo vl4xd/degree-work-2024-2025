@@ -62,7 +62,7 @@ const GameTable: React.FC = () => {
     const [hasMore, setHasMore] = useState(false);
 
     const fetchSeasons = useCallback(() => {
-        axios.get<Season[]>('http://localhost:8000/seasons')
+        axios.get<Season[]>('/seasons')
             .then(response => {
                 const seasonsResponse = response.data;
                 setSeasons(seasonsResponse);
@@ -75,7 +75,7 @@ const GameTable: React.FC = () => {
     const fetchSeasonTeams = useCallback(() => {
         if (!selectedSeason) return;
 
-        axios.get<SeasonTeam[]>(`http://localhost:8000/season/teams?season_id=${selectedSeason}`)
+        axios.get<SeasonTeam[]>(`/season/teams?season_id=${selectedSeason}`)
             .then(response => {
                 setSeasonTeams(response.data);
             })
@@ -99,7 +99,7 @@ const GameTable: React.FC = () => {
         if (dateRange[0]) queryString += `&from_start_date=${dateRange[0].format('YYYY-MM-DD')}`;
         if (dateRange[1]) queryString += `&to_start_date=${dateRange[1].format('YYYY-MM-DD')}`;
 
-        axios.get<Game[]>(`http://localhost:8000/season/games?${queryString}`)
+        axios.get<Game[]>(`/season/games?${queryString}`)
             .then(response => {
                 setGames(response.data);
                 setHasMore(response.data.length >= pagination.limit);
