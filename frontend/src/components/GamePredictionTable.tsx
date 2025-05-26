@@ -1,7 +1,7 @@
 // import type { TableColumnsType } from 'antd';
 // import { Badge, Space, Table } from 'antd';
-import { Button, Progress } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { Button, Progress, Tag } from 'antd';
+import { SyncOutlined, TrophyOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -59,6 +59,29 @@ interface GamePrediction {
   prediction_list: Prediction[];
 }
 
+interface GameData {
+    game_id: number;
+    season_game_id: string;
+    season_id: string;
+    left_team_name: string;
+    right_team_name: string;
+    left_team_id: string;
+    right_team_id: string;
+    game_status_id: number;
+    left_coach_id: string;
+    right_coach_id: string;
+    tour_number: number;
+    left_goal_score: number;
+    right_goal_score: number;
+    start_date: string;
+    start_time: string;
+    min: number | null;
+    plus_min: number | null;
+    created_at: string;
+    updated_at: string;
+    game_url: string;
+}
+
 declare global {
     interface Window {
         setInterval: (callback: () => void, ms: number) => number;
@@ -90,6 +113,17 @@ function GamePredictionTable(){
     // const [loading, setLoading] = useState(true);
     // const [error, setError] = useState<string | null>(null);
 
+    const [gameData, setGameData] = useState<GameData | null>(null);
+    const getGameStatus = (statusId: number) => {
+        switch(statusId) {
+            case 0: return 'Не начата';
+            case 1: return 'Завершена';
+            case 2: return 'Перерыв';
+            case 3: return 'В процессе';
+            default: return 'Неизвестно';
+        }
+    };
+
     const [gamePrediction, setGamePrediction] = useState<GamePrediction>();
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [prevValues, setPrevValues] = useState<{ 
@@ -110,6 +144,7 @@ function GamePredictionTable(){
         if (refreshInterval === null) {
             // Только для ручного режима - однократный запрос
             fetchGamePrediction();
+            fetchGameData();
             setIsAuto(false); // Гарантируем выключение автообновления
         } else {
             // Для автоматических режимов - переключение состояния
@@ -122,7 +157,7 @@ function GamePredictionTable(){
     const gameId = queryParams.get('game_id'); // Используем переданный game_id или значение по умолчанию
 
     const fetchGamePrediction = useCallback(() => {
-        axios.get<GamePrediction>(`/api/season/game/prediction?game_id=${gameId}&sort_type=DESC`)
+        axios.get<GamePrediction>(`http://localhost:8000/season/game/prediction?game_id=${gameId}&sort_type=DESC`)
             .then(response => {
                 const gamePredictionResponse = response.data;
                 const predictions = gamePredictionResponse.prediction_list;
@@ -165,6 +200,16 @@ function GamePredictionTable(){
             });
     }, [gameId]);
     
+    const fetchGameData = useCallback(() => {
+        axios.get<GameData>(`http://localhost:8000/season/game?game_id=${gameId}`)
+            .then(response => {
+                setGameData(response.data);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+            console.log(gameData?.left_goal_score)
+    }, [gameId]);
 
     const getChangeIndicator = (current: number, previous: number) => {
         if (current > previous) return '🟢'; // Увеличение
@@ -213,6 +258,7 @@ function GamePredictionTable(){
     };
 
     useEffect(() => {
+        fetchGameData();
         fetchGamePrediction()
     }, [])
 
@@ -401,6 +447,184 @@ function GamePredictionTable(){
     return (
         <div style={{ margin: '0 auto'}}>
 
+
+
+            {/* Блок информации об игре */}
+            {gameData && (
+                <div style={{ 
+                    marginBottom: 24,
+                    padding: 24,
+                    background: '#fff',
+                    borderRadius: 12,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    border: '1px solid #f0f0f0'
+                }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        marginBottom: 24
+                    }}>
+                        {/* Статус и время матча */}
+                        <div style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 16,
+                            marginBottom: 16
+                        }}>
+                            <Tag color={
+                                gameData.game_status_id === 1 ? '#f5222d' : 
+                                gameData.game_status_id === 3 ? '#52c41a' : 
+                                '#faad14'
+                            } style={{ fontSize: 14, padding: '4px 12px' }}>
+                                {getGameStatus(gameData.game_status_id)}
+                            </Tag>
+                            
+                            {gameData.game_status_id === 3 && (
+                                <div style={{ 
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: '#595959',
+                                    fontSize: 14
+                                }}>
+                                    <span style={{ marginRight: 8 }}>⏱ Текущее время:</span>
+                                    <strong>
+                                        {gameData.min ?? 0}'
+                                        {gameData.plus_min !== null && gameData.plus_min > 0 && `+${gameData.plus_min}`}
+                                    </strong>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Команды и счет */}
+                        <div style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 32,
+                            marginBottom: 16
+                        }}>
+                            <div style={{ 
+                                textAlign: 'center',
+                                padding: 16,
+                                borderRadius: 8,
+                                background: '#f8f9fa'
+                            }}>
+                                <div style={{ 
+                                    fontSize: 12,
+                                    color: '#8c8c8c',
+                                    marginBottom: 4
+                                }}>
+                                    Левая команда
+                                </div>
+                                <h2 style={{ 
+                                    margin: 0,
+                                    color: '#1890ff',
+                                    fontSize: 24
+                                }}>
+                                    {gameData.left_team_name}
+                                </h2>
+                            </div>
+
+                            <div style={{ 
+                                fontSize: 32,
+                                fontWeight: 'bold',
+                                color: '#262626',
+                                minWidth: 100,
+                                textAlign: 'center'
+                            }}>
+                                {gameData.left_goal_score} : {gameData.right_goal_score}
+                            </div>
+
+                            <div style={{ 
+                                textAlign: 'center',
+                                padding: 16,
+                                borderRadius: 8,
+                                background: '#f8f9fa'
+                            }}>
+                                <div style={{ 
+                                    fontSize: 12,
+                                    color: '#8c8c8c',
+                                    marginBottom: 4
+                                }}>
+                                    Правая команда
+                                </div>
+                                <h2 style={{ 
+                                    margin: 0,
+                                    color: '#1890ff',
+                                    fontSize: 24
+                                }}>
+                                    {gameData.right_team_name}
+                                </h2>
+                            </div>
+                        </div>
+
+                        {/* Детали матча */}
+                        <div style={{ 
+                            display: 'flex',
+                            gap: 24,
+                            alignItems: 'center',
+                            marginBottom: 16
+                        }}>
+                            <div style={{ 
+                                display: 'flex',
+                                gap: 8,
+                                alignItems: 'center',
+                                color: '#595959'
+                            }}>
+                                <span>🔢 Тур:</span>
+                                <strong>№{gameData.tour_number}</strong>
+                            </div>
+
+                            <div style={{ 
+                                display: 'flex',
+                                gap: 8,
+                                alignItems: 'center',
+                                color: '#595959'
+                            }}>
+                                <span>⏰ Время начала:</span>
+                                <strong>
+                                    {gameData.start_time.slice(0, 5)}
+                                </strong>
+                            </div>
+
+                            <div style={{ 
+                                display: 'flex',
+                                gap: 8,
+                                alignItems: 'center',
+                                color: '#595959'
+                            }}>
+                                <span>🗓 Дата начала:</span>
+                                <strong>
+                                    {new Date(gameData.start_date).toLocaleDateString('ru-RU', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    })}
+                                </strong>
+                            </div>
+                            
+                        </div>
+
+                        {/* Кнопка перехода */}
+                        <Button 
+                            type="primary" 
+                            href={gameData.game_url} 
+                            target="_blank"
+                            icon={<TrophyOutlined />}
+                            style={{ 
+                                background: '#13c2c2',
+                                borderColor: '#13c2c2',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                            }}
+                        >
+                            Перейти на страницу игры
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Верхняя панель управления */}
             <div style={{ 
                 display: 'flex',
@@ -459,6 +683,29 @@ function GamePredictionTable(){
                 />
             )}
 
+            {/* Легенда */}
+            <div style={{
+                display: 'flex',
+                gap: 16,
+                marginBottom: 16,
+                padding: 8,
+                background: '#f8f9fa',
+                borderRadius: 8
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 16, height: 16, background: '#e00000' }} />
+                    <span>{gameData?.left_team_name ?? "Левая команда"}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 16, height: 16, background: '#666666' }} />
+                    <span>Ничья</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 16, height: 16, background: '#0034c9' }} />
+                    <span>{gameData?.right_team_name ?? "Правая команда"}</span>
+                </div>
+            </div>
+
             {gamePrediction?.prediction_list.map(prediction => (
                 <div 
                     key={prediction.prediction_id}
@@ -490,9 +737,9 @@ function GamePredictionTable(){
                             overflow: 'hidden',
                             display: 'flex'
                         }}>
-                            {renderProgressBar(prediction.left_p, '#f50')}
-                            {renderProgressBar(prediction.draw_p, '#2db7f5')}
-                            {renderProgressBar(prediction.right_p, '#87d068')}
+                            {renderProgressBar(prediction.left_p, '#e00000')}
+                            {renderProgressBar(prediction.draw_p, '#666666')}
+                            {renderProgressBar(prediction.right_p, '#0034c9')}
                         </div>
                     </div>
 

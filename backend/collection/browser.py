@@ -1,8 +1,8 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from pyvirtualdisplay import Display
-from webdriver_manager.chrome import ChromeDriverManager
+# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.chrome.service import Service
+# from pyvirtualdisplay import Display
+# from webdriver_manager.chrome import ChromeDriverManager
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -48,23 +48,21 @@ class AsyncBrowserConnection:
 
     async def __aenter__(self):
         
-        self.display = Display(visible=0, size=(1024, 768))
-        self.display.start()
-        
-        options = Options()
-        # options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
-        # options.set_preference('media.volume_scale', '0.0')
+        options = webdriver.FirefoxOptions()
+        options.set_preference('dom.webdriver.enabled', False) # деактивация вебдрайвера
+        options.set_preference('media.volume_scale', '0.0')
         options.add_argument('--headless') # не запускать GUI браузера
-        options.add_argument('--disable-gpu')
-        options.add_argument('--enable-unsafe-swiftshader')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        # options.set_preference('general.useragent.override', 'useragent1')
+        options.set_preference('general.useragent.override', 'useragent1')
+        
+        # options.add_argument('--disable-gpu')
+        # options.add_argument('--enable-unsafe-swiftshader')
+        # options.add_argument('--no-sandbox')
+        # options.add_argument('--disable-dev-shm-usage')
         
         # service = Service(executable_path='/usr/local/bin/geckodriver')
         self.browser = await self.loop.run_in_executor(
             self.executor,
-            lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options))
+            lambda: webdriver.Firefox(options=options))
         
         # Устанавливаем тайм-аут для поиска элементов
         # self.browser.implicitly_wait(10)  # 10 секунд
@@ -81,5 +79,4 @@ class AsyncBrowserConnection:
         await self.loop.run_in_executor(
             self.executor,
             self.browser.quit)
-        self.display.stop()
     

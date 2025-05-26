@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import { Table, Select, DatePicker, Button, Space, Alert } from 'antd';
-// import moment from 'moment';
 import { Dayjs } from 'dayjs';
-import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -43,15 +41,13 @@ interface Game {
 }
 
 const GameTable: React.FC = () => {
-    const navigate = useNavigate();
     const [seasons, setSeasons] = useState<Season[]>([]);
     const [seasonTeams, setSeasonTeams] = useState<SeasonTeam[]>([]);
     const [games, setGames] = useState<Game[]>([]);
     const [selectedSeason, setSelectedSeason] = useState<string>('');
     const [selectedTeams, setSelectedTeams] = useState<{ leftTeamId: string; rightTeamId: string }>({ leftTeamId: '', rightTeamId: '' });
-    // const [dateRange, setDateRange] = useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
-    const [gameStatuses, setGameStatuses] = useState<number[]>([0, 2, 3]);
+    const [gameStatuses, setGameStatuses] = useState<number[]>([]);
     const [loading, setLoading] = useState({
         seasons: true,
         teams: false,
@@ -62,7 +58,7 @@ const GameTable: React.FC = () => {
     const [hasMore, setHasMore] = useState(false);
 
     const fetchSeasons = useCallback(() => {
-        axios.get<Season[]>('/api/seasons')
+        axios.get<Season[]>('http://localhost:8000/seasons')
             .then(response => {
                 const seasonsResponse = response.data;
                 setSeasons(seasonsResponse);
@@ -75,7 +71,7 @@ const GameTable: React.FC = () => {
     const fetchSeasonTeams = useCallback(() => {
         if (!selectedSeason) return;
 
-        axios.get<SeasonTeam[]>(`/api/season/teams?season_id=${selectedSeason}`)
+        axios.get<SeasonTeam[]>(`http://localhost:8000/season/teams?season_id=${selectedSeason}`)
             .then(response => {
                 setSeasonTeams(response.data);
             })
@@ -99,7 +95,7 @@ const GameTable: React.FC = () => {
         if (dateRange[0]) queryString += `&from_start_date=${dateRange[0].format('YYYY-MM-DD')}`;
         if (dateRange[1]) queryString += `&to_start_date=${dateRange[1].format('YYYY-MM-DD')}`;
 
-        axios.get<Game[]>(`/api/season/games?${queryString}`)
+        axios.get<Game[]>(`http://localhost:8000/season/games?${queryString}`)
             .then(response => {
                 setGames(response.data);
                 setHasMore(response.data.length >= pagination.limit);
@@ -229,7 +225,6 @@ const GameTable: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center' }}>
                 <RangePicker
                     value={dateRange}
-                    // onChange={dates => setDateRange(dates as [moment.Moment | null, moment.Moment | null])}
                     onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null])}
                     allowClear={false}
                     style={{ flex: 1 }}
@@ -262,7 +257,7 @@ const GameTable: React.FC = () => {
                 pagination={false}
                 onRow={(record) => ({
                     onClick: () => {
-                        navigate(`/rpl/game?game_id=${record.game_id}`);
+                        window.open(`/rpl/game?game_id=${record.game_id}`, '_blank');
                     },
                 })}
             />

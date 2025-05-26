@@ -18,26 +18,26 @@ from db.queries.core import AsyncCore as AC
 from db.schemasDto import * # noqa
 
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     # Выполнение manage_active_season при первом запуске приложения
-#     await manage_active_season()
-#     # Запуск задач при старте приложения
-#     scheduler = AsyncIOScheduler()
-#     # Запуск manage_active_season каждый первый день месяца
-#     scheduler.add_job(manage_active_season, CronTrigger(day=1, hour=0, minute=0))
-#     # Запуск manage_active_game каждые 120 секунд
-#     scheduler.add_job(manage_active_game, IntervalTrigger(seconds=30))
-#     # Запуск manage_predict_game каждые 180 секунд
-#     scheduler.add_job(manage_predict_game, IntervalTrigger(seconds=30))
-#     scheduler.start()
-#     yield
-#     # Остановка задач при завершении приложения
-#     scheduler.shutdown()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Выполнение manage_active_season при первом запуске приложения
+    # await manage_active_season()
+    # Запуск задач при старте приложения
+    scheduler = AsyncIOScheduler()
+    # Запуск manage_active_season каждый первый день месяца
+    scheduler.add_job(manage_active_season, CronTrigger(day=1, hour=0, minute=0))
+    # Запуск manage_active_game каждые 120 секунд
+    scheduler.add_job(manage_active_game, IntervalTrigger(seconds=30))
+    # Запуск manage_predict_game каждые 180 секунд
+    scheduler.add_job(manage_predict_game, IntervalTrigger(seconds=30))
+    scheduler.start()
+    yield
+    # Остановка задач при завершении приложения
+    scheduler.shutdown()
     
 
-# app = FastAPI(lifespan=lifespan)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
+# app = FastAPI()
 
 
 origins = [
@@ -65,6 +65,15 @@ class SortName(str, Enum):
 async def get_seasons():
     try:
         return await AC.Season.get_season_list()
+    except Exception as e:
+        print(e)
+
+@app.get('/season/game', response_class=JSONResponse, summary='Получение матча', tags=['Матчи'])
+async def get_season_game(
+    game_id: int,
+):
+    try:
+        return await AC.Game.get_game(game_id)
     except Exception as e:
         print(e)
 
@@ -112,4 +121,4 @@ async def get_prediction(game_id: int, sort_type: SortName):
 
 
 if __name__=='__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    uvicorn.run(app, host='127.0.0.1', port=8000)
