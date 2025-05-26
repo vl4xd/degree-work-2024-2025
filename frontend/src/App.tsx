@@ -63,7 +63,7 @@ const App: React.FC = () => {
           </div>
         </Content>
         <Footer style={{ textAlign: 'center' }}>
-          Ant Design ©2023 Created by Your Company
+          Выпускная квалификационная работа ©2025 Платонов Владислав Алексеевич
         </Footer>
       </Layout>
     </Router>

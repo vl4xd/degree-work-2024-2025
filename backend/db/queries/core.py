@@ -1025,6 +1025,74 @@ class AsyncCore:
                 
     class Game:
         
+        @staticmethod
+        async def get_game(game_id: int) -> GameAddDto | None:
+            async with async_session_factory() as session:
+                try:
+                    query = text('''
+                SELECT 
+                    game.game_id,
+                    season_game_id,
+                    season_id,
+                    left_team.name AS left_team_name,
+                    right_team.name AS right_team_name,
+                    left_team_id,
+                    right_team_id,
+                    game_status_id,
+                    left_coach_id,
+                    right_coach_id,
+                    tour_number,
+                    start_date,
+                    start_time,
+                    min,
+                    plus_min,
+                    created_at,
+                    updated_at,
+                    (SELECT COUNT(*) FROM goal 
+                     WHERE goal.game_id = game.game_id AND goal.team_id = game.left_team_id) AS left_goal_score,
+                    (SELECT COUNT(*) FROM goal 
+                     WHERE goal.game_id = game.game_id AND goal.team_id = game.right_team_id) AS right_goal_score
+                FROM game
+                LEFT JOIN team AS left_team 
+                    ON game.left_team_id = left_team.team_id
+                LEFT JOIN team AS right_team 
+                    ON game.right_team_id = right_team.team_id
+                WHERE game.game_id = :game_id''')
+                    
+                    query = query.bindparams(game_id=game_id)
+                    
+                    res = await session.execute(query)
+                    
+                    game = res.one_or_none()
+                    
+                    if game:
+                        return GameAddDto(
+                            game_id=int(game.game_id),
+                            season_game_id=game.season_game_id,
+                            season_id=game.season_id,
+                            left_team_name = game.left_team_name,
+                            right_team_name = game.right_team_name,
+                            left_team_id=game.left_team_id,
+                            right_team_id=game.right_team_id,
+                            game_status_id=int(game.game_status_id),
+                            left_coach_id=game.left_coach_id,
+                            right_coach_id=game.right_coach_id,
+                            tour_number=int(game.tour_number),
+                            left_goal_score=int(game.left_goal_score) if game.left_goal_score else 0,
+                            right_goal_score=int(game.right_goal_score) if game.right_goal_score else 0,
+                            start_date=game.start_date,
+                            start_time=game.start_time,
+                            min=game.min,
+                            plus_min=game.plus_min,
+                            created_at=game.created_at,
+                            updated_at=game.updated_at,
+                            game_url=GamePage.get_page_link(game.season_id, game.season_game_id)
+                        )
+                    else: return None
+                except Exception as e:
+                    await session.rollback()
+                    raise
+        
         async def get_game_list(season_id: str,
                                 sort_type: str,
                                 game_statuses: list[int],

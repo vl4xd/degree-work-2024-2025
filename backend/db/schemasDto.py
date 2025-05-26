@@ -28,12 +28,16 @@ class GameDto(BaseModel):
 class GameAddDto(GameDto):
     season_game_id: str
     season_id: str
+    left_team_name: str
+    right_team_name: str
     left_team_id: str
     right_team_id: str
     game_status_id: int
     left_coach_id: str | None
     right_coach_id: str | None
     tour_number: int
+    left_goal_score: int | None
+    right_goal_score: int | None
     start_date: date
     start_time: time
     min: int | None

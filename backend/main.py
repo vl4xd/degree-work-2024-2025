@@ -68,6 +68,14 @@ async def get_seasons():
     except Exception as e:
         print(e)
 
+@app.get('/season/game', response_class=JSONResponse, summary='Получение матча', tags=['Матчи'])
+async def get_season_game(
+    game_id: int,
+):
+    try:
+        return await AC.Game.get_game(game_id)
+    except Exception as e:
+        print(e)
 
 @app.get('/season/games', response_class=JSONResponse, summary='Получение списка матчей', tags=['Матчи'])
 async def get_season_games(
