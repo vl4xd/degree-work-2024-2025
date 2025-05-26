@@ -1104,8 +1104,32 @@ class AsyncCore:
                                 offset) -> list[GameAddDto]:
             async with async_session_factory() as session:
                 try:
-                    base_query = text('''
-                                 SELECT * FROM game''')
+                    base_query = text('''SELECT 
+                    game.game_id,
+                    season_game_id,
+                    season_id,
+                    left_team.name AS left_team_name,
+                    right_team.name AS right_team_name,
+                    left_team_id,
+                    right_team_id,
+                    game_status_id,
+                    left_coach_id,
+                    right_coach_id,
+                    tour_number,
+                    start_date,
+                    start_time,
+                    min,
+                    plus_min,
+                    created_at,
+                    updated_at,
+                    (SELECT COUNT(*) FROM goal 
+                     WHERE goal.game_id = game.game_id AND goal.team_id = game.left_team_id) AS left_goal_score,
+                    (SELECT COUNT(*) FROM goal 
+                     WHERE goal.game_id = game.game_id AND goal.team_id = game.right_team_id) AS right_goal_score
+                FROM game''')
+                    
+                    base_query = text(str(base_query) + ' LEFT JOIN team AS left_team ON game.left_team_id=left_team.team_id')
+                    base_query = text(str(base_query) + ' LEFT JOIN team AS right_team on game.right_team_id=right_team.team_id')
                     
                     conditions = []
                     params = {}
@@ -1138,7 +1162,7 @@ class AsyncCore:
                     
                     if conditions:
                         where_clause = and_(*conditions)
-                        query = text('SELECT * FROM game WHERE ' + str(where_clause))
+                        query = text(str(base_query) + ' WHERE ' + str(where_clause))
                     else:
                         query = base_query
                     
